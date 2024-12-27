@@ -37,3 +37,14 @@ Thumbs.db
 
 # Project specific
 *.log 
+
+# Specific files and folders
+LorcanaJSON/
+find_similar_cards copy.py
+json_lorcana_test.py
+popular_archetype_breakdown.html
+preprocess_json_allCards.py
+sentence_similarity.py
+similicana_v01.py
+similicana_prototype.py
+winrate_matrix_last3months.html
