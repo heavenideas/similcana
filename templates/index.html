@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Lorcana Card Similarity Finder</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Lorcana Card Similarity Finder</h1>
+        
+        <div class="weights-panel">
+            <button id="toggleWeights" class="weights-toggle">
+                Adjust Similarity Weights
+                <span class="toggle-icon">▼</span>
+            </button>
+            <div id="weightsControls" class="weights-controls hidden">
+                <div class="weights-grid">
+                    <div class="weight-item">
+                        <label for="weight-ink_cost">Ink Cost</label>
+                        <input type="range" id="weight-ink_cost" min="0" max="100" value="15" 
+                               class="weight-slider" data-weight-name="ink_cost">
+                        <span class="weight-value">0.15</span>
+                    </div>
+                    <div class="weight-item">
+                        <label for="weight-strength">Strength</label>
+                        <input type="range" id="weight-strength" min="0" max="100" value="10" 
+                               class="weight-slider" data-weight-name="strength">
+                        <span class="weight-value">0.10</span>
+                    </div>
+                    <div class="weight-item">
+                        <label for="weight-willpower">Willpower</label>
+                        <input type="range" id="weight-willpower" min="0" max="100" value="10" 
+                               class="weight-slider" data-weight-name="willpower">
+                        <span class="weight-value">0.10</span>
+                    </div>
+                    <div class="weight-item">
+                        <label for="weight-lore_points">Lore Points</label>
+                        <input type="range" id="weight-lore_points" min="0" max="100" value="10" 
+                               class="weight-slider" data-weight-name="lore_points">
+                        <span class="weight-value">0.10</span>
+                    </div>
+                    <div class="weight-item">
+                        <label for="weight-ability">Ability Text</label>
+                        <input type="range" id="weight-ability" min="0" max="100" value="24" 
+                               class="weight-slider" data-weight-name="ability">
+                        <span class="weight-value">0.24</span>
+                    </div>
+                    <div class="weight-item">
+                        <label for="weight-mechanics">Mechanics</label>
+                        <input type="range" id="weight-mechanics" min="0" max="100" value="15" 
+                               class="weight-slider" data-weight-name="mechanics">
+                        <span class="weight-value">0.15</span>
+                    </div>
+                    <div class="weight-item">
+                        <label for="weight-tags">Tags</label>
+                        <input type="range" id="weight-tags" min="0" max="100" value="1" 
+                               class="weight-slider" data-weight-name="tags">
+                        <span class="weight-value">0.01</span>
+                    </div>
+                    <div class="weight-item">
+                        <label for="weight-ink_color">Ink Color</label>
+                        <input type="range" id="weight-ink_color" min="0" max="100" value="5" 
+                               class="weight-slider" data-weight-name="ink_color">
+                        <span class="weight-value">0.05</span>
+                    </div>
+                    <div class="weight-item">
+                        <label for="weight-card_type">Card Type</label>
+                        <input type="range" id="weight-card_type" min="0" max="100" value="5" 
+                               class="weight-slider" data-weight-name="card_type">
+                        <span class="weight-value">0.05</span>
+                    </div>
+                    <div class="weight-item">
+                        <label for="weight-inkwell">Inkwell</label>
+                        <input type="range" id="weight-inkwell" min="0" max="100" value="5" 
+                               class="weight-slider" data-weight-name="inkwell">
+                        <span class="weight-value">0.05</span>
+                    </div>
+                </div>
+                <div class="weights-total">
+                    <span>Total: </span>
+                    <span id="weightsTotal">1.00</span>
+                    <span id="weightsTotalWarning" class="hidden">Must equal 1.00</span>
+                </div>
+                <div class="weights-actions">
+                    <button id="resetWeights" class="secondary-button">Reset to Default</button>
+                    <button id="applyWeights" class="primary-button">Apply Weights</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="search-section">
+            <div class="search-container">
+                <input type="text" 
+                       id="cardSearch" 
+                       placeholder="Enter card name..."
+                       autocomplete="off">
+                <div id="searchResults" class="search-results hidden"></div>
+            </div>
+            <div class="search-options">
+                <select id="resultCount" class="result-count-select">
+                    <option value="5">5 results</option>
+                    <option value="10">10 results</option>
+                    <option value="15">15 results</option>
+                    <option value="20">20 results</option>
+                    <option value="25">25 results</option>
+                </select>
+                <button onclick="findSimilarCards()" id="searchButton">Find Similar Cards</button>
+            </div>
+        </div>
+
+        <div id="loadingSpinner" class="loading-spinner-container hidden">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">Calculating similarities...</div>
+        </div>
+
+        <div class="results-section">
+            <div class="target-card">
+                <h2>Target Card</h2>
+                <div id="targetCardDisplay"></div>
+            </div>
+
+            <div class="similar-cards">
+                <h2>Similar Cards</h2>
+                <div id="similarCardsDisplay"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html> 
