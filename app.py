@@ -40,22 +40,20 @@ def find_similar():
         'target_card': {
             'details': format_card_details(target_card),
             'image_url': target_card.get('images', {}).get('full', ''),
+            'cardTraderUrl': target_card.get('externalLinks', {}).get('cardTraderUrl', '#')
         },
         'similar_cards': []
     }
     
     for card, similarities, overall_similarity in similar_cards:
-        converted_similarities = {
-            k: float(v) for k, v in similarities.items()
-        }
-        
         response['similar_cards'].append({
             'details': format_card_details(card),
             'image_url': card.get('images', {}).get('full', ''),
-            'similarities': converted_similarities,
-            'overall_similarity': float(overall_similarity)
+            'similarities': {k: float(v) for k, v in similarities.items()},
+            'overall_similarity': float(overall_similarity),
+            'cardTraderUrl': card.get('externalLinks', {}).get('cardTraderUrl', '#')
         })
-    
+    print(response)
     return jsonify(response)
 
 @app.route('/search_cards', methods=['POST'])
@@ -95,6 +93,41 @@ def update_weights():
     # Update weights in the finder
     finder.weights = new_weights
     return jsonify({'success': True})
+
+@app.route('/get_similar_cards', methods=['POST'])
+def get_similar_cards():
+    if finder is None:
+        return jsonify({'error': 'System is still initializing, please wait...'})
+        
+    card_name = request.form.get('card_name', '').lower()
+    result_count = int(request.form.get('result_count', 5))
+    
+    target_card, similar_cards = finder.find_similar_cards(card_name, num_results=result_count)
+    
+    if not target_card:
+        return jsonify({'error': f"Card '{card_name}' not found"})
+    
+    response = {
+        'target_card': {
+            'details': format_card_details(target_card),
+            'image_url': target_card.get('images', {}).get('full', ''),
+        },
+        'similar_cards': []
+    }
+    
+    for card, similarities, overall_similarity in similar_cards:
+        converted_similarities = {
+            k: float(v) for k, v in similarities.items()
+        }
+        
+        response['similar_cards'].append({
+            'details': format_card_details(card),
+            'image_url': card.get('images', {}).get('full', ''),
+            'similarities': converted_similarities,
+            'overall_similarity': float(overall_similarity)
+        })
+    
+    return jsonify(response)
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))  # Render uses PORT env variable

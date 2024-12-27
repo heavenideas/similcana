@@ -155,8 +155,8 @@ function createCardHTML(card, similarity) {
         `;
     };
 
-    // Create CardTrader URL
-    const cardTraderUrl = `https://cardtrader.com/games/lorcana/cards/${encodeURIComponent(card.details.fullName.toLowerCase().replace(/[^a-z0-9]+/g, '-'))}`;
+    // Use the cardTraderUrl directly from the response instead of constructing it
+    const cardTraderUrl = card.cardTraderUrl;
 
     // Get original card values if this is a similar card
     const originalCard = window.originalCardDetails;
@@ -179,16 +179,12 @@ function createCardHTML(card, similarity) {
                      ${imageClickHandler}>
                 ${similarity !== null ? '<div class="click-hint">Click to find similar cards</div>' : ''}
                 <div class="card-market-info">
-                    <a href="${cardTraderUrl}" target="_blank" class="cardtrader-link">
-                        <span class="cardtrader-icon">🛒</span>
-                        View on CardTrader
+                    <a href="${cardTraderUrl}" 
+                       target="_blank" 
+                       rel="noopener noreferrer" 
+                       class="cardtrader-link">
+                        Check price on CardTrader
                     </a>
-                    ${card.market_data ? `
-                        <div class="price-info">
-                            <span class="price-label">Price:</span>
-                            <span class="price-value">${card.market_data.price}</span>
-                        </div>
-                    ` : ''}
                 </div>
             </div>
             <div class="card-details">
