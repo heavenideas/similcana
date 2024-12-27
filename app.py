@@ -1,3 +1,4 @@
+import os
 from flask import Flask, render_template, request, jsonify
 from find_similar_cards import LorcanaCardFinder, format_card_details
 import threading
@@ -96,4 +97,5 @@ def update_weights():
     return jsonify({'success': True})
 
 if __name__ == '__main__':
-    app.run(debug=True) 
+    port = int(os.environ.get('PORT', 10000))  # Render uses PORT env variable
+    app.run(host='0.0.0.0', port=port) 
