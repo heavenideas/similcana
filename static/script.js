@@ -167,88 +167,15 @@ function createSimilarityHTML(similarities) {
     `;
 }
 
-function createCardHTML(card, similarity) {
-    const similarityHTML = similarity !== null 
-        ? `<div class="similarity-score">Overall Similarity: ${(similarity * 100).toFixed(1)}%</div>`
-        : '';
-
-    // Helper function to calculate and format the difference
-    const getDifference = (originalValue, currentValue, skipDiff = false) => {
-        if (skipDiff || originalValue === undefined || currentValue === undefined) return '';
-        const diff = currentValue - originalValue;
-        if (diff === 0) return '';
-        return `<span class="value-difference ${diff > 0 ? 'positive' : 'negative'}">(${diff > 0 ? '+' : ''}${diff})</span>`;
-    };
-
-    // Helper function to create attribute HTML with similarity tooltip and difference
-    const createAttributeHTML = (label, value, similarityKey, originalValue, skipDiff = false) => {
-        const similarityValue = card.similarities && card.similarities[similarityKey]
-            ? `${(card.similarities[similarityKey] * 100).toFixed(1)}% similar`
-            : null;
-        
-        const tooltipAttr = similarityValue 
-            ? `data-tooltip="${similarityValue}"` 
-            : '';
-
-        const difference = similarity !== null ? getDifference(originalValue, value, skipDiff) : '';
-
-        return `
-            <div class="attribute" ${tooltipAttr}>
-                <span class="attribute-label">${label}:</span>
-                <span>${value} ${difference}</span>
-            </div>
-        `;
-    };
-
-    // Use the cardTraderUrl directly from the response instead of constructing it
-    const cardTraderUrl = card.cardTraderUrl;
-
-    // Get original card values if this is a similar card
-    const originalCard = window.originalCardDetails;
-
-    // Fix: Get the correct simpleName from the card object structure
-    const cardSimpleName = card.details?.simpleName || card.simpleName || '';
-    
-    // Debug log to verify the card name
-    console.log('Card being rendered:', cardSimpleName);
-
-    // Fix: Update the click handler to use a data attribute instead of inline onclick
-    const imageClickHandler = similarity !== null ? 
-        `data-card-name="${cardSimpleName.replace(/"/g, '&quot;')}" class="clickable-card-image"` : '';
-
-    // Debug log to see the card data structure
-    console.log('Card details:', card.details);
-    
-    // Get mechanics from the card details
-    const mechanics = card.details?.mechanics || [];
-    
+function createCardHTML(card, isTarget = false) {
     return `
-        <div class="card-display">
-            <div class="card-image-container">
-                <img class="card-image" src="${card.image_url}" 
-                     alt="${card.details.fullName}"
-                     ${imageClickHandler}>
-                ${similarity !== null ? '<div class="click-hint">Click to find similar cards</div>' : ''}
-                <div class="card-market-info">
-                    <a href="${cardTraderUrl}" 
-                       target="_blank" 
-                       rel="noopener noreferrer" 
-                       class="cardtrader-link">
-                        Check price on CardTrader
-                    </a>
-                </div>
-            </div>
-            <div class="card-details">
-                ${similarityHTML}
-                ${createAttributeHTML('Name', card.details.fullName)}
-                ${createAttributeHTML('Color', card.details.color, 'ink_color', originalCard?.color, true)}
-                ${createAttributeHTML('Cost', card.details.cost, 'ink_cost', originalCard?.cost)}
-                ${createAttributeHTML('Strength', card.details.strength, 'strength', originalCard?.strength)}
-                ${createAttributeHTML('Willpower', card.details.willpower, 'willpower', originalCard?.willpower)}
-                ${createAttributeHTML('Lore', card.details.lore, 'lore_points', originalCard?.lore)}
-                ${createAttributeHTML('Text', card.details.fullText, 'ability')}
-                ${createAttributeHTML('Mechanics', mechanics.length > 0 ? mechanics.join(', ') : 'None', 'mechanics', originalCard?.mechanics, true)}
-                ${similarity !== null ? createSimilarityHTML(card.similarities) : ''}
+        <div class="card-image-container">
+            <img src="${card.image_url}" 
+                 alt="${card.details.fullName}"
+                 class="${isTarget ? 'batch-card-thumbnail' : ''}"
+                 data-card-image>
+            <div class="card-zoom">
+                <img src="${card.image_url}" alt="${card.details.fullName}">
             </div>
         </div>
     `;
@@ -460,22 +387,29 @@ function initializeCardClickHandlers() {
     });
 }
 
-// Add this new function to handle card image clicks
+// Remove duplicate searchForCard functions and keep one version
 function searchForCard(cardName) {
     if (!cardName) {
         console.error('No card name provided');
         return;
     }
     
-    console.log('Searching for card:', cardName);
-    const searchInput = document.getElementById('cardSearch');
-    searchInput.value = cardName;
-    findSimilarCards();
+    // Check if we're on the single card analysis page
+    if (window.location.pathname !== '/') {
+        window.location.href = `/?card=${encodeURIComponent(cardName)}`;
+        return;
+    }
     
-    window.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-    });
+    const searchInput = document.getElementById('cardSearch');
+    if (searchInput) {
+        searchInput.value = cardName;
+        findSimilarCards();
+        
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    }
 }
 
 function processBatchCardList(text) {
@@ -557,7 +491,12 @@ function createCompactCardHTML(card) {
     const similarity = card.overall_similarity;
     return `
         <div class="compact-card">
-            <img src="${card.image_url}" alt="${card.details.fullName}">
+            <div class="card-image-container">
+                <img src="${card.image_url}" alt="${card.details.fullName}" data-card-image>
+                <div class="card-zoom">
+                    <img src="${card.image_url}" alt="${card.details.fullName}">
+                </div>
+            </div>
             <div class="compact-card-info">
                 <div class="compact-card-name">${card.details.fullName}</div>
                 <div class="compact-card-similarity">${(similarity * 100).toFixed(1)}%</div>
@@ -592,13 +531,66 @@ function toggleSection(header) {
     icon.textContent = content.style.display === 'none' ? '▼' : '▲';
 }
 
-// Add this to your existing window.onload or at the bottom of your script
+function initializeImageZoom() {
+    document.addEventListener('mouseover', function(e) {
+        const cardImage = e.target.closest('[data-card-image]');
+        if (cardImage) {
+            const zoomContainer = cardImage.nextElementSibling;
+            if (zoomContainer && zoomContainer.classList.contains('card-zoom')) {
+                zoomContainer.style.display = 'block';
+                // Add small delay before adding visible class for transition
+                setTimeout(() => zoomContainer.classList.add('visible'), 10);
+                
+                // Position the zoom container
+                document.addEventListener('mousemove', updateZoomPosition);
+                
+                function updateZoomPosition(e) {
+                    const x = e.clientX + 20;
+                    const y = e.clientY + 20;
+                    
+                    // Check if the zoom container would go off screen
+                    const rect = zoomContainer.getBoundingClientRect();
+                    const maxX = window.innerWidth - rect.width - 20; // Add padding
+                    const maxY = window.innerHeight - rect.height - 20; // Add padding
+                    
+                    // Adjust position to keep zoom in viewport
+                    let finalX = x;
+                    let finalY = y;
+                    
+                    if (x > maxX) {
+                        finalX = e.clientX - rect.width - 20; // Show on left side of cursor
+                    }
+                    if (y > maxY) {
+                        finalY = Math.max(20, maxY); // Stick to top if needed
+                    }
+                    
+                    zoomContainer.style.left = finalX + 'px';
+                    zoomContainer.style.top = finalY + 'px';
+                }
+                
+                // Clean up when mouse leaves
+                cardImage.addEventListener('mouseleave', function cleanup() {
+                    zoomContainer.classList.remove('visible');
+                    setTimeout(() => {
+                        zoomContainer.style.display = 'none';
+                    }, 200); // Match transition duration
+                    document.removeEventListener('mousemove', updateZoomPosition);
+                    cardImage.removeEventListener('mouseleave', cleanup);
+                }, { once: true });
+            }
+        }
+    });
+}
+
+// Update the DOMContentLoaded event listener
 document.addEventListener('DOMContentLoaded', function() {
     // Get the current page path
     const currentPath = window.location.pathname;
     
     // Initialize weights panel for both views
-    initializeWeightsPanel();
+    if (document.getElementById('weightsControls')) {
+        initializeWeightsPanel();
+    }
     
     if (currentPath === '/') {
         // Initialize single card analysis page
@@ -607,6 +599,23 @@ document.addEventListener('DOMContentLoaded', function() {
             initializeSearch();
             initializeStickyHeader();
             initializeCardClickHandlers();
+            initializeImageZoom();
+            
+            // Add event listener for Enter key in search box
+            searchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    findSimilarCards();
+                }
+            });
+            
+            // Check for card parameter in URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const cardParam = urlParams.get('card');
+            if (cardParam) {
+                searchInput.value = decodeURIComponent(cardParam);
+                findSimilarCards();
+            }
+            
             searchInput.disabled = true;
             document.getElementById('searchButton').disabled = true;
         }
@@ -617,35 +626,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (batchInput && analyzeButton) {
             batchInput.disabled = true;
             analyzeButton.disabled = true;
+            initializeImageZoom();
         }
     }
     
     // Common initialization for both pages
     checkSystemStatus();
 });
-
-// Add event listener for Enter key in search box
-document.getElementById('cardSearch').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        findSimilarCards();
-    }
-});
-
-// Add this new function to handle card image clicks
-function searchForCard(cardName) {
-    if (!cardName) {
-        console.error('No card name provided');
-        return;
-    }
-    
-    const searchInput = document.getElementById('cardSearch');
-    searchInput.value = cardName;
-    findSimilarCards();
-    
-    // Scroll to top of page
-    window.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-    });
-}
 
