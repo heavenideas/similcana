@@ -117,33 +117,68 @@ class LorcanaCardFinder:
         return min(boosted_similarity, 1.0)
 
     def _find_mechanics(self, card):
-        """Find mechanics for a card."""
-        #TODO: find the mechanics for a card in a better more sofisticated way
-        mechanics = []
-        for ability in card.get('abilities', []):
-            # if ability.get('type') == 'keyword':
-            #     mechanics.append(ability.get('keyword', ''))
-            mechanics.append(ability.get('type'))
-        return mechanics
-    
-        # return [ability.get('keyword', '') for ability in card.get('abilities', []) 
-        #         if ability.get('type') == 'keyword']
+        """Find mechanics based on predefined keywords in card text."""
+        MECHANIC_KEYWORDS = {
+            'bodyguard',
+            'challenger',
+            'evasive',
+            'reckless',
+            'resist',
+            'rush',
+            'shift',
+            'singer',
+            'support',
+            'ward',
+            'banish',
+            'your hand',
+            'their hand',
+            'opposing players',
+            'opposing characters'
+        }
+        
+        mechanics = set()  # Using set to avoid duplicates
+        
+        # For Action cards, check effects text
+        if card.get('type') == 'Action':
+            for effect in card.get('effects', []):
+                effect_lower = effect.lower()
+                # Check for each mechanic keyword in the full text
+                mechanics.update(keyword for keyword in MECHANIC_KEYWORDS 
+                               if keyword in effect_lower)
+        else:
+            # For other cards, check abilities
+            for ability in card.get('abilities', []):
+                # Check keyword field first (case-insensitive)
+                if ability.get('keyword', '').lower() in MECHANIC_KEYWORDS:
+                    mechanics.add(ability.get('keyword', '').lower())
+                
+                # Also check fullText for mechanics
+                if ability.get('fullText'):
+                    text_lower = ability.get('fullText').lower()
+                    mechanics.update(keyword for keyword in MECHANIC_KEYWORDS 
+                                   if keyword in text_lower)
+        
+        return list(mechanics)  # Convert set back to list
 
     def _convert_card_format(self, card):
         """Convert JSON card data to internal format."""
-        # Process abilities to remove ability names from fullText
-        processed_abilities = []
-        for ability in card.get('abilities', []):
-            full_text = ability.get('fullText', '')
-            ability_name = ability.get('name', '')
-            
-            # Remove ability name from the start of fullText if present
-            if ability_name and full_text.startswith(ability_name):
-                # Remove name and any following dash/hyphen with surrounding whitespace
-                full_text = full_text[len(ability_name):].strip()
-                full_text = full_text.lstrip('—').strip()
-            
-            processed_abilities.append(full_text)
+        # For Action cards, use effects instead of abilities
+        if card.get('type') == 'Action':
+            processed_abilities = card.get('effects', [])
+        else:
+            # Process abilities to remove ability names from fullText
+            processed_abilities = []
+            for ability in card.get('abilities', []):
+                full_text = ability.get('fullText', '')
+                ability_name = ability.get('name', '')
+                
+                # Remove ability name from the start of fullText if present
+                if ability_name and full_text.startswith(ability_name):
+                    # Remove name and any following dash/hyphen with surrounding whitespace
+                    full_text = full_text[len(ability_name):].strip()
+                    full_text = full_text.lstrip('—').strip()
+                
+                processed_abilities.append(full_text)
         
         return {
             "name": card.get('name', ''),
@@ -372,9 +407,9 @@ def print_card_comparison(target_card, similar_cards, finder):
 
 # Example usage:
 if __name__ == "__main__":
-    finder = LorcanaCardFinder('/Users/inesdemenaurrutia/PycharmProjects/Similicana/LorcanaJSON/output/generated/allCards.json')
+    finder = LorcanaCardFinder('database/allCards.json')
     
-    card_name = "simba future king"
+    card_name = "a whole new world"
     print(f"Processing card name: {card_name}")
     target_card, similar_cards = finder.find_similar_cards(card_name)
     
