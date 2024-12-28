@@ -128,15 +128,15 @@ function createCardHTML(card, similarity) {
         : '';
 
     // Helper function to calculate and format the difference
-    const getDifference = (originalValue, currentValue) => {
-        if (originalValue === undefined || currentValue === undefined) return '';
+    const getDifference = (originalValue, currentValue, skipDiff = false) => {
+        if (skipDiff || originalValue === undefined || currentValue === undefined) return '';
         const diff = currentValue - originalValue;
         if (diff === 0) return '';
         return `<span class="value-difference ${diff > 0 ? 'positive' : 'negative'}">(${diff > 0 ? '+' : ''}${diff})</span>`;
     };
 
     // Helper function to create attribute HTML with similarity tooltip and difference
-    const createAttributeHTML = (label, value, similarityKey, originalValue) => {
+    const createAttributeHTML = (label, value, similarityKey, originalValue, skipDiff = false) => {
         const similarityValue = card.similarities && card.similarities[similarityKey]
             ? `${(card.similarities[similarityKey] * 100).toFixed(1)}% similar`
             : null;
@@ -145,7 +145,7 @@ function createCardHTML(card, similarity) {
             ? `data-tooltip="${similarityValue}"` 
             : '';
 
-        const difference = similarity !== null ? getDifference(originalValue, value) : '';
+        const difference = similarity !== null ? getDifference(originalValue, value, skipDiff) : '';
 
         return `
             <div class="attribute" ${tooltipAttr}>
@@ -171,6 +171,12 @@ function createCardHTML(card, similarity) {
     const imageClickHandler = similarity !== null ? 
         `data-card-name="${cardSimpleName.replace(/"/g, '&quot;')}" class="clickable-card-image"` : '';
 
+    // Debug log to see the card data structure
+    console.log('Card details:', card.details);
+    
+    // Get mechanics from the card details
+    const mechanics = card.details?.mechanics || [];
+    
     return `
         <div class="card-display">
             <div class="card-image-container">
@@ -190,12 +196,13 @@ function createCardHTML(card, similarity) {
             <div class="card-details">
                 ${similarityHTML}
                 ${createAttributeHTML('Name', card.details.fullName)}
-                ${createAttributeHTML('Color', card.details.color, 'ink_color', originalCard?.color)}
+                ${createAttributeHTML('Color', card.details.color, 'ink_color', originalCard?.color, true)}
                 ${createAttributeHTML('Cost', card.details.cost, 'ink_cost', originalCard?.cost)}
                 ${createAttributeHTML('Strength', card.details.strength, 'strength', originalCard?.strength)}
                 ${createAttributeHTML('Willpower', card.details.willpower, 'willpower', originalCard?.willpower)}
                 ${createAttributeHTML('Lore', card.details.lore, 'lore_points', originalCard?.lore)}
                 ${createAttributeHTML('Text', card.details.fullText, 'ability')}
+                ${createAttributeHTML('Mechanics', mechanics.length > 0 ? mechanics.join(', ') : 'None', 'mechanics', originalCard?.mechanics, true)}
                 ${similarity !== null ? createSimilarityHTML(card.similarities) : ''}
             </div>
         </div>

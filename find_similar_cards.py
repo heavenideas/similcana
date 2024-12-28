@@ -335,7 +335,8 @@ def format_card_details(card):
         "rarity": card.get('rarity', ''),
         "set": card.get('setCode', ''),
         "fullText": card.get('fullText', ''),
-        "inkwell": card.get('inkwell', False)
+        "inkwell": card.get('inkwell', False),
+        "mechanics": LorcanaCardFinder._find_mechanics(None, card)
     }
 
 def print_card_comparison(target_card, similar_cards, finder):
