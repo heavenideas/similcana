@@ -4,6 +4,13 @@ A web application for finding similar Lorcana cards based on various attributes 
 
 ![Similicana Main View](img/similicana_main_screenshot.png)
 
+
+## Disclaimer
+
+>This project is not affiliated with or endorsed by the creators of Lorcana. It is a personal project created for fun and to experiment with finding an easier way to find similar cards for deck building. 
+>I'm not claiming this is good code, and it's provided as is. Feel free to use it for your own purposes, but I'm not responsible for any issues it may cause. 
+
+
 ## Features
 
 - Find similar cards based on multiple attributes
