@@ -133,7 +133,9 @@ class LorcanaCardFinder:
             'your hand',
             'their hand',
             'opposing players',
-            'opposing characters'
+            'opposing characters',
+            'draw',
+            'shuffle'
         }
         
         mechanics = set()  # Using set to avoid duplicates
@@ -166,9 +168,13 @@ class LorcanaCardFinder:
         if card.get('type') == 'Action':
             processed_abilities = card.get('effects', [])
         else:
-            # Process abilities to remove ability names from fullText
+            # Process abilities to remove ability names and ignore keyword abilities
             processed_abilities = []
             for ability in card.get('abilities', []):
+                # Skip keyword abilities
+                if ability.get('type') == 'keyword':
+                    continue
+                
                 full_text = ability.get('fullText', '')
                 ability_name = ability.get('name', '')
                 
@@ -409,7 +415,7 @@ def print_card_comparison(target_card, similar_cards, finder):
 if __name__ == "__main__":
     finder = LorcanaCardFinder('database/allCards.json')
     
-    card_name = "a whole new world"
+    card_name = "winnie the pooh hunny pirate"
     print(f"Processing card name: {card_name}")
     target_card, similar_cards = finder.find_similar_cards(card_name)
     
