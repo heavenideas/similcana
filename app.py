@@ -53,7 +53,7 @@ def find_similar():
             'overall_similarity': float(overall_similarity),
             'cardTraderUrl': card.get('externalLinks', {}).get('cardTraderUrl', '#')
         })
-    print(response)
+        
     return jsonify(response)
 
 @app.route('/search_cards', methods=['POST'])

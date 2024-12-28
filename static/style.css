@@ -477,13 +477,19 @@ h2 {
 }
 
 .target-card {
-    position: sticky;
-    top: 0;
-    z-index: 100;
     padding: 20px;
-    background-color: #111827; /* Match the page background */
+    background-color: #111827;
     border-bottom: 2px solid #374151;
-    margin: -20px -20px 20px -20px; /* Compensate for container padding */
+    margin: -20px -20px 20px -20px;
+}
+
+/* Apply sticky positioning only on desktop */
+@media (min-width: 769px) {
+    .target-card {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
 }
 
 .target-card h2 {
