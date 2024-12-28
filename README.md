@@ -2,6 +2,8 @@
 
 A web application for finding similar Lorcana cards based on various attributes and characteristics.
 
+![Similicana Main View](img/similicana_main_screenshot.png)
+
 ## Features
 
 - Find similar cards based on multiple attributes
