@@ -9,7 +9,8 @@ class LorcanaCardFinder:
     def __init__(self, json_path):
         """Initialize the card finder with path to JSON data."""
         self.json_path = json_path
-        self.model = SentenceTransformer('all-MiniLM-L6-v2')
+        # Use a smaller model
+        self.model = SentenceTransformer('paraphrase-MiniLM-L3-v2')
         self.important_phrases = ["draw a card", "opposing players", "opposing characters"]
         self.weights = {
             "ink_cost": 0.15,
@@ -26,10 +27,15 @@ class LorcanaCardFinder:
         self.cards = self._load_cards()
         self._filter_cards()
         
-        # Pre-compute and cache card formats and embeddings
+        # Initialize card_formats dictionary
         self.card_formats = {}
+        
+        # Store embeddings as float16 instead of float32
         self.ability_embeddings = {}
         self._precompute_card_data()
+        
+        # Free up memory after initialization
+        self.model = None
 
     def _load_cards(self):
         """Load card data from JSON file."""
@@ -67,31 +73,38 @@ class LorcanaCardFinder:
         return len(set1 & set2) / len(set1 | set2) if len(set1 | set2) > 0 else 0
 
     def _precompute_card_data(self):
-        """Pre-compute card formats and embeddings."""
-        print("Pre-computing card data...")
+        """Pre-compute card formats and embeddings with memory optimization."""
         all_abilities = []
         ability_map = {}
         
-        # First pass: convert formats and collect abilities
+        # First pass: collect unique abilities only
+        unique_abilities = set()
         for card in self.cards:
-            card_format = self._convert_card_format(card)
-            self.card_formats[card['simpleName']] = card_format
-            
-            if card_format['ability'].strip():
-                all_abilities.append(card_format['ability'])
-                ability_map[len(all_abilities) - 1] = card['simpleName']
-        
-        # Batch compute all embeddings at once
+            ability = ' '.join([a.get('fullText', '') for a in card.get('abilities', [])])
+            if ability.strip():
+                unique_abilities.add(ability)
+                
+        # Convert to list and compute embeddings
+        all_abilities = list(unique_abilities)
         if all_abilities:
-            print("Computing ability embeddings...")
-            all_embeddings = self.model.encode(all_abilities, batch_size=32, show_progress_bar=True)
+            # Compute embeddings in smaller batches
+            batch_size = 32
+            all_embeddings = []
             
+            for i in range(0, len(all_abilities), batch_size):
+                batch = all_abilities[i:i + batch_size]
+                embeddings = self.model.encode(batch, batch_size=batch_size)
+                # Convert to float16 to save memory
+                embeddings = embeddings.astype(np.float16)
+                all_embeddings.extend(embeddings)
+
             # Map embeddings back to cards
-            for idx, embedding in enumerate(all_embeddings):
-                card_name = ability_map[idx]
-                self.ability_embeddings[card_name] = embedding
-        
-        print("Pre-computation complete!")
+            ability_to_embedding = dict(zip(all_abilities, all_embeddings))
+            
+            for card in self.cards:
+                ability = ' '.join([a.get('fullText', '') for a in card.get('abilities', [])])
+                if ability.strip():
+                    self.ability_embeddings[card['simpleName']] = ability_to_embedding[ability]
 
     def _calculate_ability_similarity(self, ability1, ability2, card1_name, card2_name):
         """Calculate similarity between ability texts with phrase boosting using cached embeddings."""
@@ -135,7 +148,11 @@ class LorcanaCardFinder:
             'opposing players',
             'opposing characters',
             'draw',
-            'shuffle'
+            'shuffle',
+            'bottom of your deck',
+            'top of your deck',
+            'bottom of their deck',
+            'top of their deck'
         }
         
         mechanics = set()  # Using set to avoid duplicates
@@ -268,9 +285,11 @@ class LorcanaCardFinder:
         if target_card is None:
             return None, None
         
-        converted_target = self.card_formats.get(target_card['simpleName'])
-        if not converted_target:
-            converted_target = self._convert_card_format(target_card)
+        # Convert target card if not already in card_formats
+        if target_card['simpleName'] not in self.card_formats:
+            self.card_formats[target_card['simpleName']] = self._convert_card_format(target_card)
+        
+        converted_target = self.card_formats[target_card['simpleName']]
         
         similar_cards_details = []
         seen_names = {target_card['fullName']}  # Track seen card names
@@ -280,9 +299,11 @@ class LorcanaCardFinder:
             if card['fullName'] in seen_names:
                 continue
                 
-            converted_card = self.card_formats.get(card['simpleName'])
-            if not converted_card:
-                converted_card = self._convert_card_format(card)
+            # Convert card if not already in card_formats
+            if card['simpleName'] not in self.card_formats:
+                self.card_formats[card['simpleName']] = self._convert_card_format(card)
+            
+            converted_card = self.card_formats[card['simpleName']]
             
             similarities, overall_similarity = self._calculate_card_similarity(
                 converted_target, 
