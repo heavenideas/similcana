@@ -553,3 +553,17 @@ h2 {
 .card-image-container:hover .click-hint {
     opacity: 1;
 } 
+
+.cardtrader-link {
+    color: #e0e0e0;  /* Light gray color that works well on dark backgrounds */
+    text-decoration: none;
+    padding: 5px 10px;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.cardtrader-link:hover {
+    background-color: #e0e0e0;
+    color: #333;  /* Dark gray for contrast on hover */
+} 

@@ -20,7 +20,7 @@ A web application for finding similar Lorcana cards based on various attributes 
 1. Clone the repository: 
 
 ```bash
-git clone https://github.com/yourusername/similcana.git
+git clone https://github.com/heavenideas/similcana.git
 cd similcana
 ```
 
