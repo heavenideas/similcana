@@ -1,5 +1,5 @@
 import json
-from sentence_transformers import SentenceTransformer
+from sentence_transformers import SentenceTransformer, SimilarityFunction
 from sklearn.metrics.pairwise import cosine_similarity
 from scipy.spatial.distance import euclidean
 from sklearn.preprocessing import OneHotEncoder
@@ -10,6 +10,8 @@ class LorcanaCardFinder:
         """Initialize the card finder with path to JSON data."""
         self.json_path = json_path
         self.model = SentenceTransformer('all-MiniLM-L6-v2')
+        self.similarity_function = SimilarityFunction.COSINE  # Default
+        self.model.similarity_fn_name = self.similarity_function
         self.important_phrases = ["draw a card", "opposing players", "opposing characters"]
         self.weights = {
             "ink_cost": 0.15,
@@ -94,7 +96,7 @@ class LorcanaCardFinder:
         print("Pre-computation complete!")
 
     def _calculate_ability_similarity(self, ability1, ability2, card1_name, card2_name):
-        """Calculate similarity between ability texts with phrase boosting using cached embeddings."""
+        """Calculate similarity between ability texts using configured similarity function."""
         if not ability1.strip() or not ability2.strip():
             return 0.0
             
@@ -103,9 +105,20 @@ class LorcanaCardFinder:
         
         if embedding1 is None or embedding2 is None:
             return 0.0
-            
-        base_similarity = cosine_similarity([embedding1], [embedding2])[0][0]
         
+        # Calculate similarity using the configured similarity function
+        base_similarity = self.model.similarity(
+            embedding1.reshape(1, -1), 
+            embedding2.reshape(1, -1)
+        )[0][0]
+        
+        # Normalize similarity score for non-cosine metrics
+        if self.similarity_function in [SimilarityFunction.EUCLIDEAN, SimilarityFunction.MANHATTAN]:
+            # Convert negative distance to similarity score between 0 and 1
+            max_distance = 20.0  # Approximate max distance based on empirical observation
+            base_similarity = max(0, 1 - abs(base_similarity) / max_distance)
+        
+        # Apply phrase boosting
         def phrase_match_boost(ability, phrases):
             matches = sum(1 for phrase in phrases if phrase in ability.lower())
             return min(1 + 0.1 * matches, 1.5)
@@ -296,6 +309,20 @@ class LorcanaCardFinder:
         similar_cards_details.sort(key=lambda x: x[2], reverse=True)
         return target_card, similar_cards_details[:num_results]
 
+    def set_similarity_function(self, function_name):
+        """Set the similarity function to use for ability comparison."""
+        valid_functions = {
+            'cosine': SimilarityFunction.COSINE,
+            'dot': SimilarityFunction.DOT_PRODUCT,
+            'euclidean': SimilarityFunction.EUCLIDEAN,
+            'manhattan': SimilarityFunction.MANHATTAN
+        }
+        if function_name.lower() not in valid_functions:
+            raise ValueError(f"Invalid similarity function. Choose from: {', '.join(valid_functions.keys())}")
+        
+        self.similarity_function = valid_functions[function_name.lower()]
+        self.model.similarity_fn_name = self.similarity_function
+
 def format_card_details(card):
     """Format card details for display."""
     return {
@@ -415,11 +442,17 @@ def print_card_comparison(target_card, similar_cards, finder):
 if __name__ == "__main__":
     finder = LorcanaCardFinder('database/allCards.json')
     
-    card_name = "winnie the pooh hunny pirate"
-    print(f"Processing card name: {card_name}")
-    target_card, similar_cards = finder.find_similar_cards(card_name)
+    #finder.set_similarity_function('cosine')
+
+    # Try different similarity functions
+    similarity_functions = ['cosine', 'dot', 'euclidean', 'manhattan']
+    card_name = "a whole new world"
     
-    if target_card:
-        print_card_comparison(target_card, similar_cards, finder)
-    else:
-        print(f"Card: {card_name} - wasn't found")
+    for sim_function in similarity_functions:
+        print(f"\nUsing {sim_function} similarity:")
+        finder.set_similarity_function(sim_function)
+        target_card, similar_cards = finder.find_similar_cards(card_name)
+        if target_card:
+            print_card_comparison(target_card, similar_cards, finder)
+        else:
+            print(f"Card: {card_name} - wasn't found")
