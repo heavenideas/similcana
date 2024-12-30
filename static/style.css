@@ -749,13 +749,15 @@ h2 {
     height: auto;
 }
 
-.card-zoom img {
-    width: 500px;  /* Larger size */
-    height: 700px; /* Maintaining aspect ratio */
+.card-zoom img,
+.compact-card .card-zoom img,
+.batch-card-header .card-zoom img {
+    width: 500px !important;
+    height: 700px !important;
     object-fit: contain;
     border-radius: 8px;
-    max-width: none;
-    max-height: none;
+    max-width: none !important;
+    max-height: none !important;
 }
 
 /* Ensure parent containers don't restrict size */
@@ -781,7 +783,7 @@ h2 {
     height: 70px;
     object-fit: cover;
     margin-right: 15px;
-    cursor: pointer; /* Add pointer cursor to indicate interactivity */
+    cursor: pointer;
 }
 
 .compact-card img {
@@ -789,5 +791,51 @@ h2 {
     height: 98px;
     object-fit: cover;
     margin-right: 10px;
-    cursor: pointer; /* Add pointer cursor */
+    cursor: pointer;
+}
+
+/* Ensure the batch card header layout works with the new container */
+.batch-card-header {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    background-color: #374151;
+    cursor: pointer;
+}
+
+.batch-card-header .card-image-container {
+    margin-right: 15px;
+}
+
+/* Ensure zoom works consistently across all card types */
+.card-image-container {
+    position: relative;
+    display: inline-block;
+}
+
+.card-zoom {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    background-color: rgba(17, 24, 39, 0.95);
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+    pointer-events: none;
+    border: 1px solid #374151;
+    max-width: none;
+    max-height: none;
+    width: auto;
+    height: auto;
+}
+
+.card-zoom img,
+.compact-card .card-zoom img,
+.batch-card-header .card-zoom img {
+    width: 500px !important;
+    height: 700px !important;
+    object-fit: contain;
+    border-radius: 8px;
+    max-width: none !important;
+    max-height: none !important;
 }

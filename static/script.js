@@ -467,10 +467,18 @@ function displayBatchResults(data) {
         const cardSection = document.createElement('div');
         cardSection.className = 'batch-card-section';
         
-        // Create expandable/collapsible section
+        // Update header to include card-image-container for zoom functionality
         cardSection.innerHTML = `
             <div class="batch-card-header" onclick="toggleSection(this)">
-                <img src="${result.target_card.image_url}" class="batch-card-thumbnail">
+                <div class="card-image-container">
+                    <img src="${result.target_card.image_url}" 
+                         class="batch-card-thumbnail" 
+                         data-card-image>
+                    <div class="card-zoom">
+                        <img src="${result.target_card.image_url}" 
+                             alt="${result.target_card.details.fullName}">
+                    </div>
+                </div>
                 <h3>${result.target_card.details.fullName}</h3>
                 <span class="expand-icon">▼</span>
             </div>
