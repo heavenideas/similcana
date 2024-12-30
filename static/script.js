@@ -168,18 +168,116 @@ function createSimilarityHTML(similarities) {
     `;
 }
 
-function createCardHTML(card, isTarget = false) {
+function createCardHTML(card, similarity) {
+    const similarityHTML = similarity !== null 
+        ? `<div class="similarity-score">Overall Similarity: ${(similarity * 100).toFixed(1)}%</div>`
+        : '';
+
+    // Helper function to calculate and format the difference
+    const getDifference = (originalValue, currentValue, skipDiff = false) => {
+        if (skipDiff || originalValue === undefined || currentValue === undefined) return '';
+        const diff = currentValue - originalValue;
+        if (diff === 0) return '';
+        return `<span class="value-difference ${diff > 0 ? 'positive' : 'negative'}">(${diff > 0 ? '+' : ''}${diff})</span>`;
+    };
+
+    // Helper function to create attribute HTML with similarity tooltip and difference
+    const createAttributeHTML = (label, value, similarityKey, originalValue, skipDiff = false) => {
+        const similarityValue = card.similarities && card.similarities[similarityKey]
+            ? `${(card.similarities[similarityKey] * 100).toFixed(1)}% similar`
+            : null;
+        
+        const tooltipAttr = similarityValue 
+            ? `data-tooltip="${similarityValue}"` 
+            : '';
+
+        const difference = similarity !== null ? getDifference(originalValue, value, skipDiff) : '';
+
+        return `
+            <div class="attribute" ${tooltipAttr}>
+                <span class="attribute-label">${label}:</span>
+                <span>${value} ${difference}</span>
+            </div>
+        `;
+    };
+
+    const cardTraderUrl = card.cardTraderUrl;
+    const originalCard = window.originalCardDetails;
+    const cardSimpleName = card.details?.simpleName || card.simpleName || '';
+
+    const imageClickHandler = similarity !== null ? 
+        `data-card-name="${cardSimpleName.replace(/"/g, '&quot;')}" class="clickable-card-image"` : '';
+
+    const mechanics = card.details?.mechanics || [];
+    
     return `
-        <div class="card-image-container">
-            <img src="${card.image_url}" 
-                 alt="${card.details.fullName}"
-                 class="${isTarget ? 'batch-card-thumbnail' : ''}"
-                 data-card-image>
-            <div class="card-zoom">
-                <img src="${card.image_url}" alt="${card.details.fullName}">
+        <div class="card-display">
+            <div class="card-image-container">
+                <img class="card-image" src="${card.image_url}" 
+                     alt="${card.details.fullName}"
+                     ${imageClickHandler}>
+                ${similarity !== null ? '<div class="click-hint">Click to find similar cards</div>' : ''}
+                <div class="card-market-info">
+                    <a href="${cardTraderUrl}" 
+                       target="_blank" 
+                       rel="noopener noreferrer" 
+                       class="cardtrader-link">
+                        Check price on CardTrader
+                    </a>
+                </div>
+            </div>
+            <div class="card-details">
+                ${similarityHTML}
+                ${createAttributeHTML('Name', card.details.fullName)}
+                ${createAttributeHTML('Color', card.details.color, 'ink_color', originalCard?.color, true)}
+                ${createAttributeHTML('Cost', card.details.cost, 'ink_cost', originalCard?.cost)}
+                ${createAttributeHTML('Strength', card.details.strength, 'strength', originalCard?.strength)}
+                ${createAttributeHTML('Willpower', card.details.willpower, 'willpower', originalCard?.willpower)}
+                ${createAttributeHTML('Lore', card.details.lore, 'lore_points', originalCard?.lore)}
+                ${createAttributeHTML('Text', card.details.fullText, 'ability')}
+                ${createAttributeHTML('Mechanics', mechanics.length > 0 ? mechanics.join(', ') : 'None', 'mechanics', originalCard?.mechanics, true)}
+                ${similarity !== null ? createSimilarityHTML(card.similarities) : ''}
             </div>
         </div>
     `;
+}
+
+// New function for batch card results
+function createBatchCardHTML(card) {
+    // This function handles the display of a card in batch results
+    return `
+        <div class="compact-card">
+            <div class="card-image-container">
+                <img src="${card.image_url}" alt="${card.details.fullName}" data-card-image>
+                <div class="card-zoom">
+                    <img src="${card.image_url}" alt="${card.details.fullName}">
+                </div>
+            </div>
+            <div class="compact-card-info">
+                <div class="compact-card-name">${card.details.fullName}</div>
+                <div class="compact-card-similarity">${(card.overall_similarity * 100).toFixed(1)}%</div>
+                <div class="compact-card-details">
+                    ${createCompactSimilarityBreakdown(card.similarities)}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Function to create a compact similarity breakdown for batch results
+function createCompactSimilarityBreakdown(similarities) {
+    const keyMetrics = [
+        { key: 'ability', label: 'Ability' },
+        { key: 'mechanics', label: 'Mechanics' },
+        { key: 'ink_cost', label: 'Cost' }
+    ];
+
+    return keyMetrics.map(({ key, label }) => `
+        <div class="compact-similarity-item">
+            <span class="compact-similarity-label">${label}:</span>
+            <span class="compact-similarity-value">${(similarities[key] * 100).toFixed(0)}%</span>
+        </div>
+    `).join('');
 }
 
 function initializeSearch() {
