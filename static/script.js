@@ -5,6 +5,7 @@ function checkSystemStatus() {
         .then(response => response.json())
         .then(data => {
             if (data.ready) {
+                isSystemReady = true;
                 const currentPath = window.location.pathname;
                 if (currentPath === '/') {
                     const searchInput = document.getElementById('cardSearch');
@@ -87,7 +88,7 @@ function setLoading(isLoading) {
 
 function findSimilarCards() {
     if (!isSystemReady) {
-        alert('System is still initializing, please wait...');
+        alert('Find Similar Cards: error message:System is still initializing, please wait...');
         return;
     }
     const cardName = document.getElementById('cardSearch').value;
