@@ -2,12 +2,21 @@ import pandas as pd
 from find_similar_cards import LorcanaCardFinder
 import re  # Add this import at the top of your file
 
+
+def sanitize_string(input_string):
+    # Remove all special characters except hyphens in words
+    sanitized = input_string.replace('!', '').replace(' - ', ' ')
+    sanitized = " ".join(sanitized.lower().strip().split())
+
+    return sanitized
+
 def load_collection(csv_path):
     df = pd.read_csv(csv_path)
     df['total_copies'] = df['Normal'] + df['Foil']
     # Filter out entries with total_copies = 0
     df = df[df['total_copies'] > 0]  # Only keep entries with copies greater than 0
-    return df.set_index(df['Name'].apply(lambda x: re.sub(r'\s+', ' ', re.sub(r'[^a-zA-Z0-9\s]', '', x)).strip().lower()))['total_copies'].to_dict()  # Pre-process names
+    # Use sanitize_string instead of lambda for name processing
+    return df.set_index(df['Name'].apply(sanitize_string))['total_copies'].to_dict()  # Pre-process names
 
 def parse_decklist(decklist_text):
     decklist = {}
@@ -15,12 +24,19 @@ def parse_decklist(decklist_text):
         parts = line.split(" ", 1)
         quantity = int(parts[0])
         # Preprocess the card name
-        name = re.sub(r'\s+', ' ', re.sub(r'[^a-zA-Z0-9\s]', '', parts[1])).strip().lower()  # Remove special characters, convert to lowercase, and ensure single spaces
+        name = sanitize_string(parts[1])  # Remove special characters, convert to lowercase, and ensure single spaces
         
         decklist[name] = quantity
     return decklist
 
 def generate_final_deck(decklist, collection, finder):
+
+    '''
+    TODO: make sure that we don't exceed a maximum of 4 total copies of the added cards to respect lorcana deck building rules
+    TODO: make sure that we have checked the initial decklist first to make sure we don't add cards from the collection that would be similar
+    but that also are part of the original decklist.
+    '''
+
     final_deck = {}
     replacement_log = {}  # Log replacements for display
     # print(collection)
@@ -34,6 +50,13 @@ def generate_final_deck(decklist, collection, finder):
             else:
                 # Find similar replacements
                 target_card, similar_cards = finder.find_similar_cards(card_name, num_results=10)
+
+                if similar_cards == None:
+                    if card_name not in replacement_log:
+                        replacement_log[card_name] = []
+                    replacement_log[card_name].append(("Error", f"Error finding similar cards to: {card_name}"))
+                    break    
+
                 for similar_card, _, similarity_score in similar_cards:
                     similar_card_name = similar_card['simpleName']
                     if collection.get(similar_card_name, 0) > 0:

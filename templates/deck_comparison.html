@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Lorcana Card Similarity Finder - Deck Comparison</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <nav class="nav-menu">
+            <a href="/" class="nav-item">Single Card Analysis</a>
+            <a href="/batch" class="nav-item">Batch Analysis</a>
+            <a href="/deck-comparison" class="nav-item active">Deck Comparison</a>
+        </nav>
+        <h1>Deck Comparison</h1>
+        
+        <textarea id="deckInput" class="batch-input" 
+                  placeholder="Paste your deck list here (e.g., '2 Robin Hood - Capable Fighter')"></textarea>
+        
+        <div class="controls">
+            <button onclick="analyzeDeck()">Analyze Deck</button>
+        </div>
+
+        <div id="loadingSpinner" class="loading-spinner-container hidden">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">Calculating deck comparison...</div>
+        </div>
+
+        <div id="deckResults"></div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+        function analyzeDeck() {
+            const deckInput = document.getElementById('deckInput').value;
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            const deckResults = document.getElementById('deckResults');
+
+            loadingSpinner.classList.remove('hidden');
+            deckResults.innerHTML = '';
+
+            fetch('/analyze_deck', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ decklist: deckInput })
+            })
+            .then(response => response.json())
+            .then(data => {
+                loadingSpinner.classList.add('hidden');
+                if (data.error) {
+                    deckResults.innerHTML = `<p>Error: ${data.error}</p>`;
+                } else {
+                    deckResults.innerHTML = data.html; // Assuming the server returns HTML for the results
+                }
+            })
+            .catch(error => {
+                loadingSpinner.classList.add('hidden');
+                deckResults.innerHTML = `<p>Error: ${error.message}</p>`;
+            });
+        }
+    </script>
+</body>
+</html> 

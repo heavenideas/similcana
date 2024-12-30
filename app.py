@@ -4,6 +4,7 @@ from find_similar_cards import LorcanaCardFinder, format_card_details
 import threading
 import time
 import logging
+from deck_generation_from_collection import parse_decklist, generate_final_deck, display_final_deck_comparison, load_collection
 
 app = Flask(__name__)
 
@@ -15,7 +16,9 @@ logger = logging.getLogger(__name__)
 finder = None
 def initialize_finder():
     global finder
+    logger.debug("Initializing Finder")
     finder = LorcanaCardFinder('database/allCards.json')
+    logger.debug("DONE - Initializing Finder")
 
 init_thread = threading.Thread(target=initialize_finder)
 init_thread.start()
@@ -195,6 +198,54 @@ def find_similar_batch():
     except Exception as e:
         logger.exception("Error in find_similar_batch route")
         return jsonify({'error': str(e)})
+
+@app.route('/deck-comparison')
+def deck_comparison():
+    return render_template('deck_comparison.html')
+
+@app.route('/analyze_deck', methods=['POST'])
+def analyze_deck():
+
+    if finder is None:
+        return jsonify({'error': 'System is still initializing, please wait...'})
+    
+
+    data = request.get_json()
+    decklist_text = data.get('decklist', '')
+
+    # Load collection and parse decklist
+    collection = load_collection('database/export.csv')
+    decklist = parse_decklist(decklist_text)
+
+    # Generate final decklist and log replacements
+    final_deck, replacement_log = generate_final_deck(decklist, collection, finder)
+
+    # Prepare HTML for the results
+    html_output = generate_deck_comparison_html(decklist, final_deck, replacement_log)
+    return jsonify({'html': html_output})
+
+def generate_deck_comparison_html(original_decklist, final_deck, replacement_log):
+    output = []
+    headers = ["Original Card", "Original Count", "Replaced With", "Replacement Reason", "Final Count"]
+    output.append(f"<h2>Deck Comparison</h2>")
+    output.append("<table>")
+    output.append("<tr>" + "".join(f"<th>{header}</th>" for header in headers) + "</tr>")
+
+    for original_card, original_count in original_decklist.items():
+        replacements = replacement_log.get(original_card, [])
+        if not replacements:
+            final_count = final_deck.get(original_card, 0)
+            output.append(f"<tr><td>{original_card}</td><td>{original_count}</td><td>{original_card}</td><td>Card available</td><td>{final_count}</td></tr>")
+        else:
+            for i, (replacement_card, reason) in enumerate(replacements):
+                final_count = final_deck.get(replacement_card, 0)
+                if i == 0:
+                    output.append(f"<tr><td>{original_card}</td><td>{original_count}</td><td>{replacement_card}</td><td>{reason}</td><td>{final_count}</td></tr>")
+                else:
+                    output.append(f"<tr><td></td><td></td><td>{replacement_card}</td><td>{reason}</td><td>{final_count}</td></tr>")
+    
+    output.append("</table>")
+    return "".join(output)
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))  # Render uses PORT env variable
