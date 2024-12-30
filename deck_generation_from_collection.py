@@ -1,14 +1,7 @@
 import pandas as pd
-from find_similar_cards import LorcanaCardFinder
+from find_similar_cards import LorcanaCardFinder, sanitize_string
 import re  # Add this import at the top of your file
 
-
-def sanitize_string(input_string):
-    # Remove all special characters except hyphens in words
-    sanitized = input_string.replace('!', '').replace(' - ', ' ')
-    sanitized = " ".join(sanitized.lower().strip().split())
-
-    return sanitized
 
 def load_collection(csv_path):
     df = pd.read_csv(csv_path)

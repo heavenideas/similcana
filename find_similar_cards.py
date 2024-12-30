@@ -278,11 +278,11 @@ class LorcanaCardFinder:
         
         # Update self.cards with filtered list
         self.cards = list(filtered_cards.values())
-
+    
     def find_similar_cards(self, card_name, num_results=5):
         """Find similar cards to the given card name using cached data."""
         target_card = next((card for card in self.cards 
-                          if card.get('simpleName', '').lower() == card_name.lower()), None)
+                          if card.get('simpleName', '') == sanitize_string(card_name)), None)
         
         if target_card is None:
             return None, None
@@ -328,6 +328,13 @@ class LorcanaCardFinder:
         
         self.similarity_function = valid_functions[function_name.lower()]
         self.model.similarity_fn_name = self.similarity_function
+
+def sanitize_string(input_string):
+    # Remove all special characters except hyphens in words
+    sanitized = input_string.replace('!', '').replace(' - ', ' ').replace('.','')
+    sanitized = " ".join(sanitized.lower().strip().split())
+
+    return sanitized
 
 def format_card_details(card):
     """Format card details for display."""
