@@ -13,3 +13,4 @@ transformers==4.30.2
 torch==2.0.1
 tqdm>=4.27
 requests 
+pandas
