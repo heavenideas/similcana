@@ -6,8 +6,22 @@ function checkSystemStatus() {
         .then(data => {
             if (data.ready) {
                 isSystemReady = true;
-                document.getElementById('searchButton').disabled = false;
-                document.getElementById('cardSearch').disabled = false;
+                const currentPath = window.location.pathname;
+                if (currentPath === '/') {
+                    const searchInput = document.getElementById('cardSearch');
+                    const searchButton = document.getElementById('searchButton');
+                    if (searchInput && searchButton) {
+                        searchInput.disabled = false;
+                        searchButton.disabled = false;
+                    }
+                } else if (currentPath === '/batch') {
+                    const batchInput = document.getElementById('batchCardInput');
+                    const analyzeButton = document.querySelector('button[onclick="findSimilarCardsForBatch()"]');
+                    if (batchInput && analyzeButton) {
+                        batchInput.disabled = false;
+                        analyzeButton.disabled = false;
+                    }
+                }
             } else {
                 setTimeout(checkSystemStatus, 1000);
             }
@@ -19,30 +33,62 @@ const SEARCH_DELAY = 300; // milliseconds
 
 function setLoading(isLoading) {
     const spinner = document.getElementById('loadingSpinner');
-    const searchButton = document.getElementById('searchButton');
-    const searchInput = document.getElementById('cardSearch');
     const resultsSection = document.querySelector('.results-section');
-
-    if (isLoading) {
-        spinner.classList.remove('hidden');
-        searchButton.classList.add('disabled');
-        searchInput.classList.add('disabled');
-        searchButton.disabled = true;
-        searchInput.disabled = true;
-        resultsSection.style.opacity = '0.5';
-    } else {
-        spinner.classList.add('hidden');
-        searchButton.classList.remove('disabled');
-        searchInput.classList.remove('disabled');
-        searchButton.disabled = false;
-        searchInput.disabled = false;
-        resultsSection.style.opacity = '1';
+    
+    // Get the current page path to determine which elements to manipulate
+    const currentPath = window.location.pathname;
+    
+    if (currentPath === '/') {
+        // Single card view
+        const searchButton = document.getElementById('searchButton');
+        const searchInput = document.getElementById('cardSearch');
+        
+        if (isLoading) {
+            spinner.classList.remove('hidden');
+            searchButton.classList.add('disabled');
+            searchInput.classList.add('disabled');
+            searchButton.disabled = true;
+            searchInput.disabled = true;
+            if (resultsSection) {
+                resultsSection.style.opacity = '0.5';
+            }
+        } else {
+            spinner.classList.add('hidden');
+            searchButton.classList.remove('disabled');
+            searchInput.classList.remove('disabled');
+            searchButton.disabled = false;
+            searchInput.disabled = false;
+            if (resultsSection) {
+                resultsSection.style.opacity = '1';
+            }
+        }
+    } else if (currentPath === '/batch') {
+        // Batch view
+        const analyzeButton = document.querySelector('button[onclick="findSimilarCardsForBatch()"]');
+        const batchInput = document.getElementById('batchCardInput');
+        const batchResults = document.getElementById('batchResults');
+        
+        if (isLoading) {
+            spinner.classList.remove('hidden');
+            analyzeButton.disabled = true;
+            batchInput.disabled = true;
+            if (batchResults) {
+                batchResults.style.opacity = '0.5';
+            }
+        } else {
+            spinner.classList.add('hidden');
+            analyzeButton.disabled = false;
+            batchInput.disabled = false;
+            if (batchResults) {
+                batchResults.style.opacity = '1';
+            }
+        }
     }
 }
 
 function findSimilarCards() {
     if (!isSystemReady) {
-        alert('System is still initializing, please wait...');
+        alert('Find Similar Cards: error message:System is still initializing, please wait...');
         return;
     }
     const cardName = document.getElementById('cardSearch').value;
@@ -155,26 +201,13 @@ function createCardHTML(card, similarity) {
         `;
     };
 
-    // Use the cardTraderUrl directly from the response instead of constructing it
     const cardTraderUrl = card.cardTraderUrl;
-
-    // Get original card values if this is a similar card
     const originalCard = window.originalCardDetails;
-
-    // Fix: Get the correct simpleName from the card object structure
     const cardSimpleName = card.details?.simpleName || card.simpleName || '';
-    
-    // Debug log to verify the card name
-    console.log('Card being rendered:', cardSimpleName);
 
-    // Fix: Update the click handler to use a data attribute instead of inline onclick
     const imageClickHandler = similarity !== null ? 
         `data-card-name="${cardSimpleName.replace(/"/g, '&quot;')}" class="clickable-card-image"` : '';
 
-    // Debug log to see the card data structure
-    console.log('Card details:', card.details);
-    
-    // Get mechanics from the card details
     const mechanics = card.details?.mechanics || [];
     
     return `
@@ -209,9 +242,49 @@ function createCardHTML(card, similarity) {
     `;
 }
 
+// New function for batch card results
+function createBatchCardHTML(card) {
+    // This function handles the display of a card in batch results
+    return `
+        <div class="compact-card">
+            <div class="card-image-container">
+                <img src="${card.image_url}" alt="${card.details.fullName}" data-card-image>
+                <div class="card-zoom">
+                    <img src="${card.image_url}" alt="${card.details.fullName}">
+                </div>
+            </div>
+            <div class="compact-card-info">
+                <div class="compact-card-name">${card.details.fullName}</div>
+                <div class="compact-card-similarity">${(card.overall_similarity * 100).toFixed(1)}%</div>
+                <div class="compact-card-details">
+                    ${createCompactSimilarityBreakdown(card.similarities)}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Function to create a compact similarity breakdown for batch results
+function createCompactSimilarityBreakdown(similarities) {
+    const keyMetrics = [
+        { key: 'ability', label: 'Ability' },
+        { key: 'mechanics', label: 'Mechanics' },
+        { key: 'ink_cost', label: 'Cost' }
+    ];
+
+    return keyMetrics.map(({ key, label }) => `
+        <div class="compact-similarity-item">
+            <span class="compact-similarity-label">${label}:</span>
+            <span class="compact-similarity-value">${(similarities[key] * 100).toFixed(0)}%</span>
+        </div>
+    `).join('');
+}
+
 function initializeSearch() {
     const searchInput = document.getElementById('cardSearch');
     const searchResults = document.getElementById('searchResults');
+    
+    if (!searchInput || !searchResults) return;
 
     // Add input event listener for search
     searchInput.addEventListener('input', function(e) {
@@ -413,56 +486,258 @@ function initializeCardClickHandlers() {
     });
 }
 
-// Add this new function to handle card image clicks
+// Remove duplicate searchForCard functions and keep one version
 function searchForCard(cardName) {
     if (!cardName) {
         console.error('No card name provided');
         return;
     }
     
-    console.log('Searching for card:', cardName);
-    const searchInput = document.getElementById('cardSearch');
-    searchInput.value = cardName;
-    findSimilarCards();
+    // Check if we're on the single card analysis page
+    if (window.location.pathname !== '/') {
+        window.location.href = `/?card=${encodeURIComponent(cardName)}`;
+        return;
+    }
     
-    window.scrollTo({
-        top: 0,
-        behavior: 'smooth'
+    const searchInput = document.getElementById('cardSearch');
+    if (searchInput) {
+        searchInput.value = cardName;
+        findSimilarCards();
+        
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    }
+}
+
+function processBatchCardList(text) {
+    // Split by newlines and process each line
+    return text.split('\n')
+        .map(line => line.trim())
+        // Remove empty lines
+        .filter(line => line)
+        // Remove quantity numbers and trim
+        .map(line => line.replace(/^\d+\s+/, ''))
+        // Remove duplicate cards
+        .filter((card, index, self) => self.indexOf(card) === index);
+}
+
+function findSimilarCardsForBatch() {
+    const cardList = document.getElementById('batchCardInput').value;
+    const resultCount = document.getElementById('resultCount').value;
+    const processedCards = processBatchCardList(cardList);
+    
+    setLoading(true);
+    
+    fetch('/find_similar_batch', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            cards: processedCards,
+            result_count: resultCount
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert(data.error);
+            return;
+        }
+        displayBatchResults(data);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while fetching results');
+    })
+    .finally(() => {
+        setLoading(false);
     });
 }
 
-// Add this to your existing window.onload or at the bottom of your script
+function displayBatchResults(data) {
+    const resultsContainer = document.getElementById('batchResults');
+    resultsContainer.innerHTML = '';
+
+    // Create a container for each source card and its similar cards
+    data.forEach(result => {
+        const cardSection = document.createElement('div');
+        cardSection.className = 'batch-card-section';
+        
+        // Update header to include card-image-container for zoom functionality
+        cardSection.innerHTML = `
+            <div class="batch-card-header" onclick="toggleSection(this)">
+                <div class="card-image-container">
+                    <img src="${result.target_card.image_url}" 
+                         class="batch-card-thumbnail" 
+                         data-card-image>
+                    <div class="card-zoom">
+                        <img src="${result.target_card.image_url}" 
+                             alt="${result.target_card.details.fullName}">
+                    </div>
+                </div>
+                <h3>${result.target_card.details.fullName}</h3>
+                <span class="expand-icon">▼</span>
+            </div>
+            <div class="batch-card-content">
+                <div class="similar-cards-grid">
+                    ${result.similar_cards
+                        .map(card => createCompactCardHTML(card))
+                        .join('')}
+                </div>
+            </div>
+        `;
+        
+        resultsContainer.appendChild(cardSection);
+    });
+}
+
+function createCompactCardHTML(card) {
+    const similarity = card.overall_similarity;
+    return `
+        <div class="compact-card">
+            <div class="card-image-container">
+                <img src="${card.image_url}" alt="${card.details.fullName}" data-card-image>
+                <div class="card-zoom">
+                    <img src="${card.image_url}" alt="${card.details.fullName}">
+                </div>
+            </div>
+            <div class="compact-card-info">
+                <div class="compact-card-name">${card.details.fullName}</div>
+                <div class="compact-card-similarity">${(similarity * 100).toFixed(1)}%</div>
+                <div class="compact-card-details">
+                    ${createCompactSimilarityBreakdown(card.similarities)}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function createCompactSimilarityBreakdown(similarities) {
+    const keyMetrics = [
+        { key: 'ability', label: 'Ability' },
+        { key: 'mechanics', label: 'Mechanics' },
+        { key: 'ink_cost', label: 'Cost' }
+    ];
+
+    return keyMetrics.map(({ key, label }) => `
+        <div class="compact-similarity-item">
+            <span class="compact-similarity-label">${label}:</span>
+            <span class="compact-similarity-value">${(similarities[key] * 100).toFixed(0)}%</span>
+        </div>
+    `).join('');
+}
+
+function toggleSection(header) {
+    const content = header.nextElementSibling;
+    const icon = header.querySelector('.expand-icon');
+    
+    content.style.display = content.style.display === 'none' ? 'block' : 'none';
+    icon.textContent = content.style.display === 'none' ? '▼' : '▲';
+}
+
+function initializeImageZoom() {
+    document.addEventListener('mouseover', function(e) {
+        const cardImage = e.target.closest('[data-card-image]');
+        if (cardImage) {
+            const zoomContainer = cardImage.nextElementSibling;
+            if (zoomContainer && zoomContainer.classList.contains('card-zoom')) {
+                zoomContainer.style.display = 'block';
+                // Add small delay before adding visible class for transition
+                setTimeout(() => zoomContainer.classList.add('visible'), 10);
+                
+                // Position the zoom container
+                document.addEventListener('mousemove', updateZoomPosition);
+                
+                function updateZoomPosition(e) {
+                    const x = e.clientX + 20;
+                    const y = e.clientY + 20;
+                    
+                    // Check if the zoom container would go off screen
+                    const rect = zoomContainer.getBoundingClientRect();
+                    const maxX = window.innerWidth - rect.width - 20; // Add padding
+                    const maxY = window.innerHeight - rect.height - 20; // Add padding
+                    
+                    // Adjust position to keep zoom in viewport
+                    let finalX = x;
+                    let finalY = y;
+                    
+                    if (x > maxX) {
+                        finalX = e.clientX - rect.width - 20; // Show on left side of cursor
+                    }
+                    if (y > maxY) {
+                        finalY = Math.max(20, maxY); // Stick to top if needed
+                    }
+                    
+                    zoomContainer.style.left = finalX + 'px';
+                    zoomContainer.style.top = finalY + 'px';
+                }
+                
+                // Clean up when mouse leaves
+                cardImage.addEventListener('mouseleave', function cleanup() {
+                    zoomContainer.classList.remove('visible');
+                    setTimeout(() => {
+                        zoomContainer.style.display = 'none';
+                    }, 200); // Match transition duration
+                    document.removeEventListener('mousemove', updateZoomPosition);
+                    cardImage.removeEventListener('mouseleave', cleanup);
+                }, { once: true });
+            }
+        }
+    });
+}
+
+// Update the DOMContentLoaded event listener
 document.addEventListener('DOMContentLoaded', function() {
-    initializeSearch();
-    initializeWeightsPanel();
-    initializeStickyHeader();
-    initializeCardClickHandlers();
-    document.getElementById('searchButton').disabled = true;
-    document.getElementById('cardSearch').disabled = true;
+    // Get the current page path
+    const currentPath = window.location.pathname;
+    
+    // Initialize weights panel for both views
+    if (document.getElementById('weightsControls')) {
+        initializeWeightsPanel();
+    }
+    
+    if (currentPath === '/') {
+        // Initialize single card analysis page
+        const searchInput = document.getElementById('cardSearch');
+        if (searchInput) {
+            initializeSearch();
+            initializeStickyHeader();
+            initializeCardClickHandlers();
+            initializeImageZoom();
+            
+            // Add event listener for Enter key in search box
+            searchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    findSimilarCards();
+                }
+            });
+            
+            // Check for card parameter in URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const cardParam = urlParams.get('card');
+            if (cardParam) {
+                searchInput.value = decodeURIComponent(cardParam);
+                findSimilarCards();
+            }
+            
+            searchInput.disabled = true;
+            document.getElementById('searchButton').disabled = true;
+        }
+    } else if (currentPath === '/batch') {
+        // Initialize batch analysis page
+        const batchInput = document.getElementById('batchCardInput');
+        const analyzeButton = document.querySelector('button[onclick="findSimilarCardsForBatch()"]');
+        if (batchInput && analyzeButton) {
+            batchInput.disabled = true;
+            analyzeButton.disabled = true;
+            initializeImageZoom();
+        }
+    }
+    
+    // Common initialization for both pages
     checkSystemStatus();
 });
 
-// Add event listener for Enter key in search box
-document.getElementById('cardSearch').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        findSimilarCards();
-    }
-});
-
-// Add this new function to handle card image clicks
-function searchForCard(cardName) {
-    if (!cardName) {
-        console.error('No card name provided');
-        return;
-    }
-    
-    const searchInput = document.getElementById('cardSearch');
-    searchInput.value = cardName;
-    findSimilarCards();
-    
-    // Scroll to top of page
-    window.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-    });
-} 
