@@ -148,7 +148,13 @@ class LorcanaCardFinder:
             'opposing players',
             'opposing characters',
             'draw',
-            'shuffle'
+            'shuffle',
+            'damage',
+            'heal',
+            'remove',
+            'chosen character',
+            'location',
+            'chosen item'
         }
         
         mechanics = set()  # Using set to avoid duplicates
