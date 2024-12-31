@@ -228,20 +228,22 @@ def analyze_deck():
         if card_name in replacement_log:
             # If there are replacements, we can log the final count from the replacement log
             for replacement_card, reason in replacement_log[card_name]:
+                full_name = get_full_name(replacement_card)  # Get full name for the replacement card
                 if replacement_card in combined_final_deck:
                     combined_final_deck[replacement_card]['final_count'] += quantity
                 else:
                     combined_final_deck[replacement_card] = {
-                        'name': replacement_card,
+                        'name': full_name,
                         'final_count': quantity,
                         'image_url': get_image_url(replacement_card)  # Use the helper function to get the image URL
                     }
         else:
+            full_name = get_full_name(card_name)  # Get full name for the original card
             if card_name in combined_final_deck:
                 combined_final_deck[card_name]['final_count'] += quantity
             else:
                 combined_final_deck[card_name] = {
-                    'name': card_name,
+                    'name': full_name,
                     'final_count': quantity,
                     'image_url': get_image_url(card_name)  # Use the helper function to get the image URL
                 }
@@ -281,6 +283,13 @@ def get_image_url(card_name):
         if card.get('simpleName', '').lower() == card_name.lower():
             return card.get('images', {}).get('full', '')  # Adjust the key as necessary
     return ''  # Return an empty string if the card is not found
+
+def get_full_name(card_name):
+    """Helper function to retrieve the full name for a given card name."""
+    for card in finder.cards:
+        if card.get('simpleName', '').lower() == card_name.lower():
+            return card.get('fullName', '')  # Adjust the key as necessary
+    return card_name  # Return the simple name if the full name is not found
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))  # Render uses PORT env variable
