@@ -205,11 +205,9 @@ def deck_comparison():
 
 @app.route('/analyze_deck', methods=['POST'])
 def analyze_deck():
-
     if finder is None:
         return jsonify({'error': 'System is still initializing, please wait...'})
     
-
     data = request.get_json()
     decklist_text = data.get('decklist', '')
 
@@ -222,7 +220,37 @@ def analyze_deck():
 
     # Prepare HTML for the results
     html_output = generate_deck_comparison_html(decklist, final_deck, replacement_log)
-    return jsonify({'html': html_output})
+
+    # Combine final deck and replacement log for the final deck results
+    combined_final_deck = {}
+    for card_name, quantity in final_deck.items():
+        # Check if there are replacements in the log
+        if card_name in replacement_log:
+            # If there are replacements, we can log the final count from the replacement log
+            for replacement_card, reason in replacement_log[card_name]:
+                if replacement_card in combined_final_deck:
+                    combined_final_deck[replacement_card]['final_count'] += quantity
+                else:
+                    combined_final_deck[replacement_card] = {
+                        'name': replacement_card,
+                        'final_count': quantity,
+                        'image_url': get_image_url(replacement_card)  # Use the helper function to get the image URL
+                    }
+        else:
+            if card_name in combined_final_deck:
+                combined_final_deck[card_name]['final_count'] += quantity
+            else:
+                combined_final_deck[card_name] = {
+                    'name': card_name,
+                    'final_count': quantity,
+                    'image_url': get_image_url(card_name)  # Use the helper function to get the image URL
+                }
+
+    # Convert the combined_final_deck dictionary to a list for the final output
+    return jsonify({
+        'html': html_output,
+        'final_deck': list(combined_final_deck.values())  # Ensure this is included
+    })
 
 def generate_deck_comparison_html(original_decklist, final_deck, replacement_log):
     output = []
@@ -246,6 +274,13 @@ def generate_deck_comparison_html(original_decklist, final_deck, replacement_log
     
     output.append("</table>")
     return "".join(output)
+
+def get_image_url(card_name):
+    """Helper function to retrieve the image URL for a given card name."""
+    for card in finder.cards:
+        if card.get('simpleName', '').lower() == card_name.lower():
+            return card.get('images', {}).get('full', '')  # Adjust the key as necessary
+    return ''  # Return an empty string if the card is not found
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))  # Render uses PORT env variable

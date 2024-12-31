@@ -25,40 +25,25 @@
             <div class="loading-text">Calculating deck comparison...</div>
         </div>
 
+        <div id="finalDeckResults" class="final-deck-results hidden">
+            <h2>Proposed Final Deck</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Card Image</th>
+                        <th>Card Final Count</th>
+                        <th>Name of the Card</th>
+                    </tr>
+                </thead>
+                <tbody id="finalDeckTableBody">
+                    <!-- Final deck rows will be populated here -->
+                </tbody>
+            </table>
+        </div>
+
         <div id="deckResults"></div>
     </div>
 
     <script src="{{ url_for('static', filename='script.js') }}"></script>
-    <script>
-        function analyzeDeck() {
-            const deckInput = document.getElementById('deckInput').value;
-            const loadingSpinner = document.getElementById('loadingSpinner');
-            const deckResults = document.getElementById('deckResults');
-
-            loadingSpinner.classList.remove('hidden');
-            deckResults.innerHTML = '';
-
-            fetch('/analyze_deck', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ decklist: deckInput })
-            })
-            .then(response => response.json())
-            .then(data => {
-                loadingSpinner.classList.add('hidden');
-                if (data.error) {
-                    deckResults.innerHTML = `<p>Error: ${data.error}</p>`;
-                } else {
-                    deckResults.innerHTML = data.html; // Assuming the server returns HTML for the results
-                }
-            })
-            .catch(error => {
-                loadingSpinner.classList.add('hidden');
-                deckResults.innerHTML = `<p>Error: ${error.message}</p>`;
-            });
-        }
-    </script>
 </body>
 </html> 

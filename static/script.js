@@ -741,3 +741,53 @@ document.addEventListener('DOMContentLoaded', function() {
     checkSystemStatus();
 });
 
+function analyzeDeck() {
+    const deckInput = document.getElementById('deckInput').value;
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    const deckResults = document.getElementById('deckResults');
+    const finalDeckResults = document.getElementById('finalDeckResults');
+    const finalDeckTableBody = document.getElementById('finalDeckTableBody');
+
+    loadingSpinner.classList.remove('hidden');
+    deckResults.innerHTML = '';
+    finalDeckTableBody.innerHTML = ''; // Clear previous results
+    finalDeckResults.classList.add('hidden'); // Hide final deck results initially
+
+    fetch('/analyze_deck', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ decklist: deckInput })
+    })
+    .then(response => response.json())
+    .then(data => {
+        loadingSpinner.classList.add('hidden');
+        if (data.error) {
+            deckResults.innerHTML = `<p>Error: ${data.error}</p>`;
+        } else {
+            deckResults.innerHTML = data.html; // Assuming the server returns HTML for the results
+
+            // Populate the final deck table
+            const finalDeck = data.final_deck; // Ensure this is correctly accessed
+            if (Array.isArray(finalDeck)) { // Check if finalDeck is an array
+                finalDeck.forEach(card => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td><img src="${card.image_url}" alt="${card.name}" style="width: 50px; height: auto;"></td>
+                        <td>${card.final_count}</td>
+                        <td>${card.name}</td>
+                    `;
+                    finalDeckTableBody.appendChild(row);
+                });
+                finalDeckResults.classList.remove('hidden'); // Show final deck results
+            } else {
+                deckResults.innerHTML = `<p>Error: Final deck data is not in the expected format.</p>`;
+            }
+        }
+    })
+    .catch(error => {
+        loadingSpinner.classList.add('hidden');
+        deckResults.innerHTML = `<p>Error: ${error.message}</p>`;
+    });
+}
