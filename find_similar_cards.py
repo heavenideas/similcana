@@ -39,6 +39,7 @@ class LorcanaCardFinder:
             data = json.load(f)
             return data['cards']
 
+
     def _normalize(self, value, min_val, max_val):
         """Normalize numerical values to 0-1."""
         return (value - min_val) / (max_val - min_val)
@@ -279,6 +280,20 @@ class LorcanaCardFinder:
         # Update self.cards with filtered list
         self.cards = list(filtered_cards.values())
     
+    def find_card_by_name(self, card_name):
+
+        target_card = None
+
+        #search by simple name
+        target_card = next((card for card in self.cards 
+                        if card.get('simpleName', '') == sanitize_string(card_name)), None)
+    
+        if target_card == None: #try full name
+            target_card = next((card for card in self.cards 
+                          if card.get('fullName', '') == sanitize_string(card_name)), None)
+        
+        return target_card
+
     def find_similar_cards(self, card_name, num_results=5):
         """Find similar cards to the given card name using cached data."""
         target_card = next((card for card in self.cards 
@@ -451,6 +466,9 @@ def print_card_comparison(target_card, similar_cards, finder):
         for feature, score in similarities.items():
             print(f"  {feature.capitalize():<15}: {score:.4f}")
         print("="*110)
+
+
+
 
 # Example usage:
 if __name__ == "__main__":

@@ -230,7 +230,7 @@ def analyze_deck():
             for replacement_card, reason in replacement_log[card_name]:
                 full_name = get_full_name(replacement_card)  # Get full name for the replacement card
                 if replacement_card in combined_final_deck:
-                    combined_final_deck[replacement_card]['final_count'] += quantity
+                    combined_final_deck[replacement_card]['final_count'] = quantity
                 else:
                     combined_final_deck[replacement_card] = {
                         'name': full_name,
@@ -240,7 +240,7 @@ def analyze_deck():
         else:
             full_name = get_full_name(card_name)  # Get full name for the original card
             if card_name in combined_final_deck:
-                combined_final_deck[card_name]['final_count'] += quantity
+                combined_final_deck[card_name]['final_count'] = quantity
             else:
                 combined_final_deck[card_name] = {
                     'name': full_name,
