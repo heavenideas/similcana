@@ -155,7 +155,8 @@ class LorcanaCardFinder:
             'remove',
             'chosen character',
             'location',
-            'chosen item'
+            'chosen item',
+            'your inkwell'
         }
         
         mechanics = set()  # Using set to avoid duplicates

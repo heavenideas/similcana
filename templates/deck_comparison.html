@@ -22,7 +22,7 @@
 
         <div id="loadingSpinner" class="loading-spinner-container hidden">
             <div class="loading-spinner"></div>
-            <div class="loading-text">Calculating deck comparison...</div>
+            <div class="loading-text" id="loadingText">Calculating deck comparison...</div>
         </div>
 
         <div id="finalDeckResults" class="final-deck-results hidden">
@@ -47,5 +47,10 @@
     </div>
 
     <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+        function updateLoadingText(message) {
+            document.getElementById('loadingText').innerText = message;
+        }
+    </script>
 </body>
 </html> 
