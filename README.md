@@ -43,6 +43,27 @@ Here is a breakdown of the attributes that are used to compare cards.
 - Card Type: Character, Action, Item, Location
 - Inkwell: is this card inkable or not?
 
+# Modes
+
+## Single Card Analysis
+
+- In detail breakdown of individual cards and their similar counterparts
+
+## Batch Card Analysis
+
+- Same but you can enter a list of cards to analyze
+
+![Batch Analysis](img/similicana_batchSimilarity_screenshot.png)
+
+## Alternate Deck Creation (From Existing Collection)
+
+- WIP: Based on an exported lorcana collection csv file from dreamborn.ink and a decklist that you want to breakdown, extract the most similar deck that you can build with the cards in your personal collection.
+
+![Deck from Collection](img/similicana_deckFromCollection_screenshot.png)
+
+- Also get a breakdown of why each card was chosen to be part of the deck
+
+![Deck Breakdown](img/similicana_deckBreakdown_screenshot.png)
 
 # Technical Details
 

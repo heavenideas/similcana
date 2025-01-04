@@ -749,7 +749,6 @@ function analyzeDeck() {
     const finalDeckTableBody = document.getElementById('finalDeckTableBody');
 
     loadingSpinner.classList.remove('hidden');
-    updateLoadingText("Starting to analyze your deck..."); // Update loading text
     deckResults.innerHTML = '';
     finalDeckTableBody.innerHTML = ''; // Clear previous results
     finalDeckResults.classList.add('hidden'); // Hide final deck results initially
@@ -766,10 +765,8 @@ function analyzeDeck() {
         loadingSpinner.classList.add('hidden');
         if (data.error) {
             deckResults.innerHTML = `<p>Error: ${data.error}</p>`;
-            updateLoadingText("Analysis completed with errors."); // Update loading text
         } else {
             deckResults.innerHTML = data.html; // Assuming the server returns HTML for the results
-            updateLoadingText("Deck analysis successful!"); // Update loading text
 
             // Populate the final deck table
             const finalDeck = data.final_deck; // Ensure this is correctly accessed
@@ -792,13 +789,11 @@ function analyzeDeck() {
                 initializeImageZoom(); // Initialize zoom functionality for the newly added images
             } else {
                 deckResults.innerHTML = `<p>Error: Final deck data is not in the expected format.</p>`;
-                updateLoadingText("Analysis completed, but final deck data is invalid."); // Update loading text
             }
         }
     })
     .catch(error => {
         loadingSpinner.classList.add('hidden');
         deckResults.innerHTML = `<p>Error: ${error.message}</p>`;
-        updateLoadingText("An error occurred during analysis."); // Update loading text
     });
 }
