@@ -642,9 +642,9 @@ function initializeImageZoom() {
     document.addEventListener('mouseover', function(e) {
         const cardImage = e.target.closest('[data-card-image]');
         if (cardImage) {
-            const zoomContainer = cardImage.nextElementSibling;
+            const zoomContainer = cardImage.nextElementSibling; // Get the zoom container
             if (zoomContainer && zoomContainer.classList.contains('card-zoom')) {
-                zoomContainer.style.display = 'block';
+                zoomContainer.style.display = 'block'; // Show the zoom container
                 // Add small delay before adding visible class for transition
                 setTimeout(() => zoomContainer.classList.add('visible'), 10);
                 
@@ -777,13 +777,19 @@ function analyzeDeck() {
                 finalDeck.forEach(card => {
                     const row = document.createElement('tr');
                     row.innerHTML = `
-                        <td><img src="${card.image_url}" alt="${card.name}" style="width: 50px; height: auto;"></td>
+                        <td>
+                            <img src="${card.image_url}" alt="${card.name}" style="width: 50px; height: auto;" data-card-image>
+                            <div class="card-zoom">
+                                <img src="${card.image_url}" alt="${card.name}">
+                            </div>
+                        </td>
                         <td>${card.final_count}</td>
                         <td>${card.name}</td>
                     `;
                     finalDeckTableBody.appendChild(row);
                 });
                 finalDeckResults.classList.remove('hidden'); // Show final deck results
+                initializeImageZoom(); // Initialize zoom functionality for the newly added images
             } else {
                 deckResults.innerHTML = `<p>Error: Final deck data is not in the expected format.</p>`;
                 updateLoadingText("Analysis completed, but final deck data is invalid."); // Update loading text
