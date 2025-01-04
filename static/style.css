@@ -839,3 +839,34 @@ h2 {
     max-width: none !important;
     max-height: none !important;
 }
+
+/* Add these new styles for the deck comparison table */
+.deck-comparison-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.deck-comparison-table th, .deck-comparison-table td {
+    text-align: center; /* Center text in table cells */
+    padding: 10px;
+}
+
+.column-1 {
+    background-color: #2d3748; /* Darker grey for the first column */
+}
+
+.column-2 {
+    background-color: #4a5568; /* Medium grey for the second column */
+}
+
+.column-3 {
+    background-color: #718096b8; /* Lighter grey for the third column */
+}
+
+.column-4 {
+    background-color: #a0aec02b; /* Even lighter grey for the fourth column */
+}
+
+.column-5 {
+    background-color: #edf2f740; /* Lightest grey for the fifth column */
+}

@@ -256,23 +256,70 @@ def analyze_deck():
 
 def generate_deck_comparison_html(original_decklist, final_deck, replacement_log):
     output = []
-    headers = ["Original Card", "Original Count", "Replaced With", "Replacement Reason", "Final Count"]
-    output.append(f"<h2>Deck Comparison</h2>")
-    output.append("<table>")
+    headers = ["Original Card", "Original Count", "Final Card", "Replacement Reason", "Final Count"]
+    output.append(f"<h2>Deck Breakdown</h2>")
+    output.append("<table class='deck-comparison-table'>")
     output.append("<tr>" + "".join(f"<th>{header}</th>" for header in headers) + "</tr>")
 
     for original_card, original_count in original_decklist.items():
         replacements = replacement_log.get(original_card, [])
         if not replacements:
             final_count = final_deck.get(original_card, 0)
-            output.append(f"<tr><td>{original_card}</td><td>{original_count}</td><td>{original_card}</td><td>Card available</td><td>{final_count}</td></tr>")
+            card_image_url = get_image_url(original_card)
+            output.append(f"""
+                <tr>
+                    <td class='column-1'>
+                        <div class="card-image-container">
+                            <img src="{card_image_url}" class="card-image" alt="{original_card}" data-card-image/>
+                            <div class="card-zoom">
+                                <img src="{card_image_url}" alt="{original_card} zoom" />
+                            </div>
+                        </div>
+                    </td>
+                    <td class='column-2'>{original_count}</td>
+                    <td class='column-3'>{original_card}</td>
+                    <td class='column-4'>Card available</td>
+                    <td class='column-5'>{final_count}</td>
+                </tr>
+            """)
         else:
             for i, (replacement_card, reason) in enumerate(replacements):
                 final_count = final_deck.get(replacement_card, 0)
+                replacement_image_url = get_image_url(replacement_card)
                 if i == 0:
-                    output.append(f"<tr><td>{original_card}</td><td>{original_count}</td><td>{replacement_card}</td><td>{reason}</td><td>{final_count}</td></tr>")
+                    output.append(f"""
+                        <tr>
+                            <td class='column-1'>
+                                <div class="card-image-container">
+                                    <img src="{replacement_image_url}" class="card-image" alt="{replacement_card}" style="width: 100px; height: auto;" data-card-image/>
+                                    <div class="card-zoom">
+                                        <img src="{replacement_image_url}" alt="{replacement_card} zoom" />
+                                    </div>
+                                </div>
+                            </td>
+                            <td class='column-2'>{original_count}</td>
+                            <td class='column-3'>{replacement_card}</td>
+                            <td class='column-4'>{reason}</td>
+                            <td class='column-5'>{final_count}</td>
+                        </tr>
+                    """)
                 else:
-                    output.append(f"<tr><td></td><td></td><td>{replacement_card}</td><td>{reason}</td><td>{final_count}</td></tr>")
+                    output.append(f"""
+                        <tr>
+                            <td class='column-1'></td>
+                            <td class='column-2'></td>
+                            <td class='column-3'>
+                                <div class="card-image-container">
+                                    <img src="{replacement_image_url}" class="card-image" alt="{replacement_card}" style="width: 100px; height: auto;" data-card-image/>
+                                    <div class="card-zoom">
+                                        <img src="{replacement_image_url}" alt="{replacement_card} zoom"/>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class='column-4'>{reason}</td>
+                            <td class='column-5'>{final_count}</td>
+                        </tr>
+                    """)
     
     output.append("</table>")
     return "".join(output)
