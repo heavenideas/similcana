@@ -12,7 +12,7 @@ class LorcanaCardFinder:
         self.json_path = json_path
         self.embeddings_cache_path = embeddings_cache_path
         self.recache_embeddings = recache_embeddings
-        self.model = SentenceTransformer('all-MiniLM-L6-v2')
+        self.model = SentenceTransformer('all-MiniLM-L6-v2', device="cpu")
         self.similarity_function = SimilarityFunction.COSINE  # Default
         self.model.similarity_fn_name = self.similarity_function
         self.important_phrases = ["draw a card", "opposing players", "opposing characters"]
