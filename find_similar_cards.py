@@ -1,3 +1,4 @@
+import os
 import json
 from sentence_transformers import SentenceTransformer, SimilarityFunction
 from sklearn.metrics.pairwise import cosine_similarity
@@ -6,9 +7,11 @@ from sklearn.preprocessing import OneHotEncoder
 import numpy as np
 
 class LorcanaCardFinder:
-    def __init__(self, json_path):
-        """Initialize the card finder with path to JSON data."""
+    def __init__(self, json_path, embeddings_cache_path='embeddings_cache.json', recache_embeddings=False):
+        """Initialize the card finder with path to JSON data and embeddings cache."""
         self.json_path = json_path
+        self.embeddings_cache_path = embeddings_cache_path
+        self.recache_embeddings = recache_embeddings
         self.model = SentenceTransformer('all-MiniLM-L6-v2')
         self.similarity_function = SimilarityFunction.COSINE  # Default
         self.model.similarity_fn_name = self.similarity_function
@@ -28,10 +31,28 @@ class LorcanaCardFinder:
         self.cards = self._load_cards()
         self._filter_cards()
         
-        # Pre-compute and cache card formats and embeddings
+        # Load or precompute embeddings
         self.card_formats = {}
         self.ability_embeddings = {}
-        self._precompute_card_data()
+        self._load_embeddings()  # Load embeddings from cache or initialize
+        if self.recache_embeddings:
+            self._precompute_card_data()
+            self._save_embeddings()
+
+    def _load_embeddings(self):
+        """Load embeddings from a cache file if it exists."""
+        if os.path.exists(self.embeddings_cache_path):
+            with open(self.embeddings_cache_path, 'r', encoding='utf-8') as f:
+                self.ability_embeddings = json.load(f)
+            print("Loaded embeddings from cache.")
+        else:
+            print("No cached embeddings found. Precomputing embeddings...")
+
+    def _save_embeddings(self):
+        """Save embeddings to a cache file."""
+        with open(self.embeddings_cache_path, 'w', encoding='utf-8') as f:
+            json.dump(self.ability_embeddings, f)
+        print("Embeddings saved to cache.")
 
     def _load_cards(self):
         """Load card data from JSON file."""
@@ -92,7 +113,7 @@ class LorcanaCardFinder:
             # Map embeddings back to cards
             for idx, embedding in enumerate(all_embeddings):
                 card_name = ability_map[idx]
-                self.ability_embeddings[card_name] = embedding
+                self.ability_embeddings[card_name] = embedding.tolist()  # Convert to list for JSON serialization
         
         print("Pre-computation complete!")
 
@@ -107,8 +128,12 @@ class LorcanaCardFinder:
         if embedding1 is None or embedding2 is None:
             return 0.0
         
+        # Convert embeddings to NumPy arrays
+        embedding1 = np.array(embedding1)
+        embedding2 = np.array(embedding2)
+
         # Calculate similarity using the configured similarity function
-        base_similarity = self.model.similarity(
+        base_similarity = cosine_similarity(
             embedding1.reshape(1, -1), 
             embedding2.reshape(1, -1)
         )[0][0]
