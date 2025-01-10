@@ -39,14 +39,14 @@ deactivate nondestructive
 if [ "${OSTYPE:-}" = "cygwin" ] || [ "${OSTYPE:-}" = "msys" ] ; then
     # transform D:\path\to\venv to /d/path/to/venv on MSYS
     # and to /cygdrive/d/path/to/venv on Cygwin
-    export VIRTUAL_ENV=$(cygpath "/Users/inesdemenaurrutia/PycharmProjects/Similicana/.venv")
+    export VIRTUAL_ENV=$(cygpath "d:\Development\similcana\.venv")
 else
     # use the path as-is
-    export VIRTUAL_ENV="/Users/inesdemenaurrutia/PycharmProjects/Similicana/.venv"
+    export VIRTUAL_ENV="d:\Development\similcana\.venv"
 fi
 
 _OLD_VIRTUAL_PATH="$PATH"
-PATH="$VIRTUAL_ENV/bin:$PATH"
+PATH="$VIRTUAL_ENV/Scripts:$PATH"
 export PATH
 
 # unset PYTHONHOME if set

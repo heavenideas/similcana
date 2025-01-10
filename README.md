@@ -69,7 +69,7 @@ Here is a breakdown of the attributes that are used to compare cards.
 
 ## Requirements
 
-- Python 3.9+
+- Python 3.12.3+
 - Dependencies listed in requirements.txt
 
 ## Installation
@@ -97,7 +97,7 @@ pip install -r requirements.txt
 python app.py
 ```
 
-2. Access the application in your web browser at `http://127.0.0.1:5000/`
+2. Access the application in your web browser at `http://127.0.0.1:10000/`
 
 
 ## Project Structure
