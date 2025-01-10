@@ -23,7 +23,7 @@ def parse_decklist(decklist_text):
         decklist[name] = quantity
     return decklist
 
-def generate_final_deck(decklist, collection, finder):
+def generate_final_deck(decklist, collection, finder, progress_callback=None):
 
     '''
     '''
@@ -43,6 +43,9 @@ def generate_final_deck(decklist, collection, finder):
 
     original_colors = list(original_colors)[:2]  # Keep only 2 colors
     
+    # Track progress
+    total_cards = sum(decklist.values())
+    processed_cards = 0
     
     # iterate through the original decklist
     # Extract Card name and quanity of cards in the decklist
@@ -52,6 +55,10 @@ def generate_final_deck(decklist, collection, finder):
 
         #itrate through each copy of the card
         for _ in range(quantity):
+            processed_cards += 1
+            if progress_callback:
+                progress_callback({'current': processed_cards, 'total': total_cards})
+
             #if we have that card in our collection AND the card isn't already 4 times in the final deck
             if collection.get(card_name, 0) > 0 and final_deck.get(card_name, 0) < max_copies:  # Check if we can add more copies:
                 # Add this available card to our final deck

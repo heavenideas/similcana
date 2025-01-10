@@ -527,8 +527,32 @@ function findSimilarCardsForBatch() {
     const cardList = document.getElementById('batchCardInput').value;
     const resultCount = document.getElementById('resultCount').value;
     const processedCards = processBatchCardList(cardList);
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
     
-    setLoading(true);
+    // Reset and show progress elements
+    progressBar.style.width = '0%';
+    progressText.textContent = 'Processing cards: 0/0';
+    progressContainer.classList.remove('hidden');
+    loadingSpinner.classList.add('hidden');
+    
+    // Set up progress event source
+    if (progressEventSource) {
+        progressEventSource.close();
+    }
+    progressEventSource = new EventSource('/batch_progress');
+    progressEventSource.onmessage = function(event) {
+        const progress = JSON.parse(event.data);
+        const percentage = (progress.current / progress.total * 100) || 0;
+        progressBar.style.width = `${percentage}%`;
+        progressText.textContent = `Processing cards: ${progress.current}/${progress.total}`;
+        
+        if (progress.current >= progress.total && progress.total > 0) {
+            progressEventSource.close();
+        }
+    };
     
     fetch('/find_similar_batch', {
         method: 'POST',
@@ -542,6 +566,7 @@ function findSimilarCardsForBatch() {
     })
     .then(response => response.json())
     .then(data => {
+        progressContainer.classList.add('hidden');
         if (data.error) {
             alert(data.error);
             return;
@@ -549,11 +574,9 @@ function findSimilarCardsForBatch() {
         displayBatchResults(data);
     })
     .catch(error => {
+        progressContainer.classList.add('hidden');
         console.error('Error:', error);
         alert('An error occurred while fetching results');
-    })
-    .finally(() => {
-        setLoading(false);
     });
 }
 
@@ -741,6 +764,8 @@ document.addEventListener('DOMContentLoaded', function() {
     checkSystemStatus();
 });
 
+let progressEventSource = null;
+
 function analyzeDeck() {
     const deckInput = document.getElementById('deckInput').value;
     const ignoreCollection = document.getElementById('ignoreCollection').checked;
@@ -748,11 +773,34 @@ function analyzeDeck() {
     const deckResults = document.getElementById('deckResults');
     const finalDeckResults = document.getElementById('finalDeckResults');
     const finalDeckTableBody = document.getElementById('finalDeckTableBody');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
 
-    loadingSpinner.classList.remove('hidden');
+    // Reset and show progress elements
+    progressBar.style.width = '0%';
+    progressText.textContent = 'Processing cards: 0/0';
+    progressContainer.classList.remove('hidden');
+    loadingSpinner.classList.add('hidden');
     deckResults.innerHTML = '';
     finalDeckTableBody.innerHTML = '';
     finalDeckResults.classList.add('hidden');
+
+    // Set up progress event source
+    if (progressEventSource) {
+        progressEventSource.close();
+    }
+    progressEventSource = new EventSource('/deck_progress');
+    progressEventSource.onmessage = function(event) {
+        const progress = JSON.parse(event.data);
+        const percentage = (progress.current / progress.total * 100) || 0;
+        progressBar.style.width = `${percentage}%`;
+        progressText.textContent = `Processing cards: ${progress.current}/${progress.total}`;
+        
+        if (progress.current >= progress.total && progress.total > 0) {
+            progressEventSource.close();
+        }
+    };
 
     fetch('/analyze_deck', {
         method: 'POST',
@@ -766,15 +814,14 @@ function analyzeDeck() {
     })
     .then(response => response.json())
     .then(data => {
-        loadingSpinner.classList.add('hidden');
+        progressContainer.classList.add('hidden');
         if (data.error) {
             deckResults.innerHTML = `<p>Error: ${data.error}</p>`;
         } else {
-            deckResults.innerHTML = data.html; // Assuming the server returns HTML for the results
+            deckResults.innerHTML = data.html;
 
-            // Populate the final deck table
-            const finalDeck = data.final_deck; // Ensure this is correctly accessed
-            if (Array.isArray(finalDeck)) { // Check if finalDeck is an array
+            const finalDeck = data.final_deck;
+            if (Array.isArray(finalDeck)) {
                 finalDeck.forEach(card => {
                     const row = document.createElement('tr');
                     row.innerHTML = `
@@ -789,15 +836,15 @@ function analyzeDeck() {
                     `;
                     finalDeckTableBody.appendChild(row);
                 });
-                finalDeckResults.classList.remove('hidden'); // Show final deck results
-                initializeImageZoom(); // Initialize zoom functionality for the newly added images
+                finalDeckResults.classList.remove('hidden');
+                initializeImageZoom();
             } else {
                 deckResults.innerHTML = `<p>Error: Final deck data is not in the expected format.</p>`;
             }
         }
     })
     .catch(error => {
-        loadingSpinner.classList.add('hidden');
+        progressContainer.classList.add('hidden');
         deckResults.innerHTML = `<p>Error: ${error.message}</p>`;
     });
 }

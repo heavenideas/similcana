@@ -1,10 +1,11 @@
 import os
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, Response
 from find_similar_cards import LorcanaCardFinder, format_card_details
 import threading
 import time
 import logging
 from deck_generation_from_collection import parse_decklist, generate_final_deck, display_final_deck_comparison, load_collection
+import json
 
 app = Flask(__name__)
 
@@ -152,6 +153,17 @@ def update_weights():
 def batch():
     return render_template('batch.html')
 
+@app.route('/batch_progress')
+def batch_progress():
+    def generate():
+        while True:
+            progress = getattr(app, 'batch_analysis_progress', {'current': 0, 'total': 0})
+            yield f"data: {json.dumps(progress)}\n\n"
+            if progress['current'] >= progress['total'] and progress['total'] > 0:
+                break
+            time.sleep(0.5)
+    return Response(generate(), mimetype='text/event-stream')
+
 @app.route('/find_similar_batch', methods=['POST'])
 def find_similar_batch():
     logger.debug("find_similar_batch route called")
@@ -165,8 +177,11 @@ def find_similar_batch():
         
         logger.debug(f"Processing batch of {len(cards)} cards")
         
+        # Initialize progress tracking
+        app.batch_analysis_progress = {'current': 0, 'total': len(cards)}
+        
         results = []
-        for card_name in cards:
+        for i, card_name in enumerate(cards):
             logger.debug(f"Processing card: {card_name}")
             
             target_card, similar_cards = finder.find_similar_cards(card_name, num_results=result_count)
@@ -191,6 +206,12 @@ def find_similar_batch():
                         'cardTraderUrl': card.get('externalLinks', {}).get('cardTraderUrl', '#')
                     })
                 results.append(result)
+            
+            # Update progress
+            app.batch_analysis_progress = {'current': i + 1, 'total': len(cards)}
+        
+        # Reset progress
+        app.batch_analysis_progress = {'current': 0, 'total': 0}
         
         logger.debug("Successfully prepared batch response")
         return jsonify(results)
@@ -203,6 +224,17 @@ def find_similar_batch():
 def deck_comparison():
     return render_template('deck_comparison.html')
 
+@app.route('/deck_progress')
+def deck_progress():
+    def generate():
+        while True:
+            progress = getattr(app, 'deck_analysis_progress', {'current': 0, 'total': 0})
+            yield f"data: {json.dumps(progress)}\n\n"
+            if progress['current'] >= progress['total'] and progress['total'] > 0:
+                break
+            time.sleep(0.5)
+    return Response(generate(), mimetype='text/event-stream')
+
 @app.route('/analyze_deck', methods=['POST'])
 def analyze_deck():
     if finder is None:
@@ -210,28 +242,32 @@ def analyze_deck():
     
     data = request.get_json()
     decklist_text = data.get('decklist', '')
-    ignore_collection = data.get('ignoreCollection', True)  # Get the new parameter
+    ignore_collection = data.get('ignoreCollection', True)
 
     # Parse decklist first so we know which cards to exclude
     decklist = parse_decklist(decklist_text)
+    
+    # Initialize progress tracking
+    app.deck_analysis_progress = {'current': 0, 'total': len(decklist)}
 
     # Load collection only if we're not ignoring it
     collection = None
     if not ignore_collection:
         collection = load_collection('database/export.csv')
     else:
-        # Create a collection with 4 copies of each card EXCEPT those in the decklist
         collection = {}
         for card in finder.cards:
             card_name = card['simpleName'].lower()
-            # Only add cards that aren't in the original decklist
             if card_name not in decklist:
                 collection[card_name] = 4
             else:
-                collection[card_name] = 0  # Set to 0 to force finding replacements
+                collection[card_name] = 0
 
     # Generate final decklist and log replacements
-    final_deck, replacement_log = generate_final_deck(decklist, collection, finder)
+    final_deck, replacement_log = generate_final_deck(decklist, collection, finder, progress_callback=lambda x: setattr(app, 'deck_analysis_progress', x))
+
+    # Reset progress
+    app.deck_analysis_progress = {'current': 0, 'total': 0}
 
     # Prepare HTML for the results
     html_output = generate_deck_comparison_html(decklist, final_deck, replacement_log)
