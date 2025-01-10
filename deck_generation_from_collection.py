@@ -171,27 +171,7 @@ if __name__ == "__main__":
     # Load collection and parse decklist
     collection = load_collection('database/export.csv')
     decklist_text = """
-4 Vision of the Future
 4 Tamatoa - So Shiny!
-4 Brawl
-4 Pawpsicle
-4 Hiram Flaversham - Toymaker
-1 Hide Away
-3 Maui - Half-Shark
-2 Be Prepared
-4 Sail The Azurite Sea
-4 Tipo - Growing Son
-3 How Far I'll Go
-1 Let it Go
-1 A Pirate's Life
-3 Maui - Hero to All
-1 Lucky Dime
-3 Maleficent - Monstrous Dragon
-3 Ice Block
-3 Sisu - Daring Visitor
-4 Sisu - Empowered Sibling
-3 Gramma Tala - Keeper of Ancient Stories
-1 Raya - Kumandran Rider
     """
 
     decklist = parse_decklist(decklist_text)

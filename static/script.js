@@ -743,6 +743,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function analyzeDeck() {
     const deckInput = document.getElementById('deckInput').value;
+    const ignoreCollection = document.getElementById('ignoreCollection').checked;
     const loadingSpinner = document.getElementById('loadingSpinner');
     const deckResults = document.getElementById('deckResults');
     const finalDeckResults = document.getElementById('finalDeckResults');
@@ -750,15 +751,18 @@ function analyzeDeck() {
 
     loadingSpinner.classList.remove('hidden');
     deckResults.innerHTML = '';
-    finalDeckTableBody.innerHTML = ''; // Clear previous results
-    finalDeckResults.classList.add('hidden'); // Hide final deck results initially
+    finalDeckTableBody.innerHTML = '';
+    finalDeckResults.classList.add('hidden');
 
     fetch('/analyze_deck', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ decklist: deckInput })
+        body: JSON.stringify({ 
+            decklist: deckInput,
+            ignoreCollection: ignoreCollection
+        })
     })
     .then(response => response.json())
     .then(data => {

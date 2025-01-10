@@ -210,10 +210,25 @@ def analyze_deck():
     
     data = request.get_json()
     decklist_text = data.get('decklist', '')
+    ignore_collection = data.get('ignoreCollection', True)  # Get the new parameter
 
-    # Load collection and parse decklist
-    collection = load_collection('database/export.csv')
+    # Parse decklist first so we know which cards to exclude
     decklist = parse_decklist(decklist_text)
+
+    # Load collection only if we're not ignoring it
+    collection = None
+    if not ignore_collection:
+        collection = load_collection('database/export.csv')
+    else:
+        # Create a collection with 4 copies of each card EXCEPT those in the decklist
+        collection = {}
+        for card in finder.cards:
+            card_name = card['simpleName'].lower()
+            # Only add cards that aren't in the original decklist
+            if card_name not in decklist:
+                collection[card_name] = 4
+            else:
+                collection[card_name] = 0  # Set to 0 to force finding replacements
 
     # Generate final decklist and log replacements
     final_deck, replacement_log = generate_final_deck(decklist, collection, finder)
@@ -224,34 +239,31 @@ def analyze_deck():
     # Combine final deck and replacement log for the final deck results
     combined_final_deck = {}
     for card_name, quantity in final_deck.items():
-        # Check if there are replacements in the log
         if card_name in replacement_log:
-            # If there are replacements, we can log the final count from the replacement log
             for replacement_card, reason in replacement_log[card_name]:
-                full_name = get_full_name(replacement_card)  # Get full name for the replacement card
+                full_name = get_full_name(replacement_card)
                 if replacement_card in combined_final_deck:
                     combined_final_deck[replacement_card]['final_count'] = quantity
                 else:
                     combined_final_deck[replacement_card] = {
                         'name': full_name,
                         'final_count': quantity,
-                        'image_url': get_image_url(replacement_card)  # Use the helper function to get the image URL
+                        'image_url': get_image_url(replacement_card)
                     }
         else:
-            full_name = get_full_name(card_name)  # Get full name for the original card
+            full_name = get_full_name(card_name)
             if card_name in combined_final_deck:
                 combined_final_deck[card_name]['final_count'] = quantity
             else:
                 combined_final_deck[card_name] = {
                     'name': full_name,
                     'final_count': quantity,
-                    'image_url': get_image_url(card_name)  # Use the helper function to get the image URL
+                    'image_url': get_image_url(card_name)
                 }
 
-    # Convert the combined_final_deck dictionary to a list for the final output
     return jsonify({
         'html': html_output,
-        'final_deck': list(combined_final_deck.values())  # Ensure this is included
+        'final_deck': list(combined_final_deck.values())
     })
 
 def generate_deck_comparison_html(original_decklist, final_deck, replacement_log):
@@ -263,16 +275,17 @@ def generate_deck_comparison_html(original_decklist, final_deck, replacement_log
 
     for original_card, original_count in original_decklist.items():
         replacements = replacement_log.get(original_card, [])
+        original_card_image_url = get_image_url(original_card)  # Get original card image
+        
         if not replacements:
             final_count = final_deck.get(original_card, 0)
-            card_image_url = get_image_url(original_card)
             output.append(f"""
                 <tr>
                     <td class='column-1'>
                         <div class="card-image-container">
-                            <img src="{card_image_url}" class="card-image" alt="{original_card}" data-card-image/>
+                            <img src="{original_card_image_url}" class="card-image" alt="{original_card}" style="width: 100px; height: auto;" data-card-image/>
                             <div class="card-zoom">
-                                <img src="{card_image_url}" alt="{original_card} zoom" />
+                                <img src="{original_card_image_url}" alt="{original_card} zoom" />
                             </div>
                         </div>
                     </td>
@@ -291,14 +304,22 @@ def generate_deck_comparison_html(original_decklist, final_deck, replacement_log
                         <tr>
                             <td class='column-1'>
                                 <div class="card-image-container">
+                                    <img src="{original_card_image_url}" class="card-image" alt="{original_card}" style="width: 100px; height: auto;" data-card-image/>
+                                    <div class="card-zoom">
+                                        <img src="{original_card_image_url}" alt="{original_card} zoom" />
+                                    </div>
+                                </div>
+                            </td>
+                            <td class='column-2'>{original_count}</td>
+                            <td class='column-3'>
+                                <div class="card-image-container">
                                     <img src="{replacement_image_url}" class="card-image" alt="{replacement_card}" style="width: 100px; height: auto;" data-card-image/>
                                     <div class="card-zoom">
                                         <img src="{replacement_image_url}" alt="{replacement_card} zoom" />
                                     </div>
                                 </div>
+                                
                             </td>
-                            <td class='column-2'>{original_count}</td>
-                            <td class='column-3'>{replacement_card}</td>
                             <td class='column-4'>{reason}</td>
                             <td class='column-5'>{final_count}</td>
                         </tr>
