@@ -922,3 +922,21 @@ h2 {
     color: #f3f4f6;
     font-size: 14px;
 }
+
+.collection-upload {
+    margin-top: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.file-input {
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.file-hint {
+    color: #666;
+    font-size: 0.8rem;
+}

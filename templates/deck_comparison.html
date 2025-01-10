@@ -99,6 +99,11 @@
                 <input type="checkbox" id="ignoreCollection" checked>
                 Ignore collection (analyze deck as if you had no cards from proposed decklist)
             </label>
+            <div class="collection-upload">
+                <label for="collectionFile">Upload your collection CSV:</label>
+                <input type="file" id="collectionFile" accept=".csv" class="file-input">
+                <small class="file-hint">CSV format: card_name,quantity</small>
+            </div>
         </div>
 
         <textarea id="deckInput" class="batch-input" 

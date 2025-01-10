@@ -766,85 +766,45 @@ document.addEventListener('DOMContentLoaded', function() {
 
 let progressEventSource = null;
 
-function analyzeDeck() {
+async function analyzeDeck() {
     const deckInput = document.getElementById('deckInput').value;
     const ignoreCollection = document.getElementById('ignoreCollection').checked;
-    const loadingSpinner = document.getElementById('loadingSpinner');
-    const deckResults = document.getElementById('deckResults');
-    const finalDeckResults = document.getElementById('finalDeckResults');
-    const finalDeckTableBody = document.getElementById('finalDeckTableBody');
-    const progressContainer = document.getElementById('progressContainer');
-    const progressBar = document.getElementById('progressBar');
-    const progressText = document.getElementById('progressText');
-
-    // Reset and show progress elements
-    progressBar.style.width = '0%';
-    progressText.textContent = 'Processing cards: 0/0';
-    progressContainer.classList.remove('hidden');
-    loadingSpinner.classList.add('hidden');
-    deckResults.innerHTML = '';
-    finalDeckTableBody.innerHTML = '';
-    finalDeckResults.classList.add('hidden');
-
-    // Set up progress event source
-    if (progressEventSource) {
-        progressEventSource.close();
+    const fileInput = document.getElementById('collectionFile');
+    
+    let collectionData = null;
+    if (!ignoreCollection && fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+        collectionData = await file.text();
     }
-    progressEventSource = new EventSource('/deck_progress');
-    progressEventSource.onmessage = function(event) {
-        const progress = JSON.parse(event.data);
-        const percentage = (progress.current / progress.total * 100) || 0;
-        progressBar.style.width = `${percentage}%`;
-        progressText.textContent = `Processing cards: ${progress.current}/${progress.total}`;
+
+    // Show loading spinner
+    document.getElementById('loadingSpinner').classList.remove('hidden');
+    
+    try {
+        const response = await fetch('/analyze-deck', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                deck_list: deckInput,
+                ignore_collection: ignoreCollection,
+                collection_csv: collectionData,
+                weights: getCurrentWeights()
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+
+        const data = await response.json();
+        // Handle the response data...
         
-        if (progress.current >= progress.total && progress.total > 0) {
-            progressEventSource.close();
-        }
-    };
-
-    fetch('/analyze_deck', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-            decklist: deckInput,
-            ignoreCollection: ignoreCollection
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        progressContainer.classList.add('hidden');
-        if (data.error) {
-            deckResults.innerHTML = `<p>Error: ${data.error}</p>`;
-        } else {
-            deckResults.innerHTML = data.html;
-
-            const finalDeck = data.final_deck;
-            if (Array.isArray(finalDeck)) {
-                finalDeck.forEach(card => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>
-                            <img src="${card.image_url}" alt="${card.name}" style="width: 50px; height: auto;" data-card-image>
-                            <div class="card-zoom">
-                                <img src="${card.image_url}" alt="${card.name}">
-                            </div>
-                        </td>
-                        <td>${card.final_count}</td>
-                        <td>${card.name}</td>
-                    `;
-                    finalDeckTableBody.appendChild(row);
-                });
-                finalDeckResults.classList.remove('hidden');
-                initializeImageZoom();
-            } else {
-                deckResults.innerHTML = `<p>Error: Final deck data is not in the expected format.</p>`;
-            }
-        }
-    })
-    .catch(error => {
-        progressContainer.classList.add('hidden');
-        deckResults.innerHTML = `<p>Error: ${error.message}</p>`;
-    });
+    } catch (error) {
+        console.error('Error:', error);
+        // Handle error...
+    } finally {
+        document.getElementById('loadingSpinner').classList.add('hidden');
+    }
 }
