@@ -38,6 +38,46 @@ class LorcanaCardFinder:
         if self.recache_embeddings:
             self._precompute_card_data()
             self._save_embeddings()
+        
+        # Define important ability concepts with weights and related phrases
+        self.ability_concepts = {
+            "card_draw": {
+                "weight": 0.3,
+                "phrases": [
+                    "draw", "draws", "drawing",
+                    "look at", "reveal", "search",
+                    "put into your hand"
+                ]
+            },
+            "card_discard": {
+                "weight": 0.25,
+                "phrases": [
+                    "discard", "discards", "discarding",
+                    "put into discard", "banish from hand"
+                ]
+            },
+            "opponent_effect": {
+                "weight": 0.2,
+                "phrases": [
+                    "opponent", "opposing", "enemy",
+                    "their", "they", "each player"
+                ]
+            },
+            "self_effect": {
+                "weight": 0.15,
+                "phrases": [
+                    "you", "your", "friendly",
+                    "this character", "itself"
+                ]
+            },
+            "removal": {
+                "weight": 0.25,
+                "phrases": [
+                    "banish", "destroy", "remove",
+                    "exiled", "challenge"
+                ]
+            }
+        }
 
     def _load_embeddings(self):
         """Load embeddings from a cache file if it exists."""
@@ -118,10 +158,11 @@ class LorcanaCardFinder:
         print("Pre-computation complete!")
 
     def _calculate_ability_similarity(self, ability1, ability2, card1_name, card2_name):
-        """Calculate similarity between ability texts using configured similarity function."""
+        """Calculate similarity between ability texts using embeddings and concept matching."""
         if not ability1.strip() or not ability2.strip():
             return 0.0
             
+        # Get embeddings
         embedding1 = self.ability_embeddings.get(card1_name)
         embedding2 = self.ability_embeddings.get(card2_name)
         
@@ -132,7 +173,7 @@ class LorcanaCardFinder:
         embedding1 = np.array(embedding1)
         embedding2 = np.array(embedding2)
 
-        # Calculate similarity using the configured similarity function
+        # Calculate base similarity using embeddings
         base_similarity = cosine_similarity(
             embedding1.reshape(1, -1), 
             embedding2.reshape(1, -1)
@@ -140,20 +181,71 @@ class LorcanaCardFinder:
         
         # Normalize similarity score for non-cosine metrics
         if self.similarity_function in [SimilarityFunction.EUCLIDEAN, SimilarityFunction.MANHATTAN]:
-            # Convert negative distance to similarity score between 0 and 1
-            max_distance = 20.0  # Approximate max distance based on empirical observation
+            max_distance = 20.0
             base_similarity = max(0, 1 - abs(base_similarity) / max_distance)
         
-        # Apply phrase boosting
-        def phrase_match_boost(ability, phrases):
-            matches = sum(1 for phrase in phrases if phrase in ability.lower())
-            return min(1 + 0.1 * matches, 1.5)
+        # Calculate concept-based similarity boost
+        def calculate_concept_score(text, concept_data):
+            text = text.lower()
+            matches = []
+            
+            for phrase in concept_data["phrases"]:
+                # Calculate Levenshtein distance for fuzzy matching
+                if self._fuzzy_phrase_match(text, phrase):
+                    matches.append(phrase)
+            
+            # Calculate score based on matches and weight
+            match_ratio = len(matches) / len(concept_data["phrases"])
+            return min(1.0, match_ratio) * concept_data["weight"]
         
-        boost1 = phrase_match_boost(ability1, self.important_phrases)
-        boost2 = phrase_match_boost(ability2, self.important_phrases)
-        boosted_similarity = base_similarity * (boost1 + boost2) / 2
+        # Calculate concept scores for both abilities
+        concept_boost = 0.0
+        for concept, data in self.ability_concepts.items():
+            score1 = calculate_concept_score(ability1, data)
+            score2 = calculate_concept_score(ability2, data)
+            
+            # Average the concept scores between both abilities
+            concept_boost += (score1 + score2) / 2
+
+        # Combine base similarity with concept boost
+        final_similarity = base_similarity * (1.0 + min(concept_boost, 1.0))
         
-        return min(boosted_similarity, 1.0)
+        return min(final_similarity, 1.0)
+
+    def _fuzzy_phrase_match(self, text, phrase, threshold=0.85):
+        """
+        Check if phrase appears in text using fuzzy matching.
+        Returns True if a close match is found.
+        """
+        # Simple word-by-word matching
+        text_words = text.split()
+        phrase_words = phrase.split()
+        
+        for i in range(len(text_words) - len(phrase_words) + 1):
+            window = text_words[i:i + len(phrase_words)]
+            
+            # Calculate similarity for each word pair
+            matches = sum(1 for w1, w2 in zip(window, phrase_words)
+                         if self._word_similarity(w1, w2) > threshold)
+            
+            if matches / len(phrase_words) > threshold:
+                return True
+                
+        return False
+
+    def _word_similarity(self, word1, word2):
+        """
+        Calculate similarity between two words using character-level comparison.
+        Returns a score between 0 and 1.
+        """
+        # Convert to sets of characters for comparison
+        set1, set2 = set(word1), set(word2)
+        
+        # Calculate Jaccard similarity
+        intersection = len(set1 & set2)
+        union = len(set1 | set2)
+        
+        return intersection / union if union > 0 else 0.0
 
     def _find_mechanics(self, card):
         """Find mechanics based on predefined keywords in card text."""

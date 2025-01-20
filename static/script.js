@@ -848,3 +848,48 @@ function analyzeDeck() {
         deckResults.innerHTML = `<p>Error: ${error.message}</p>`;
     });
 }
+
+function showFormattedDeck() {
+    // Create modal container
+    const modal = document.createElement('div');
+    modal.className = 'deck-modal';
+    
+    // Create modal content
+    const modalContent = document.createElement('div');
+    modalContent.className = 'deck-modal-content';
+    
+    // Create close button
+    const closeButton = document.createElement('span');
+    closeButton.className = 'deck-modal-close';
+    closeButton.innerHTML = '&times;';
+    closeButton.onclick = () => modal.remove();
+    
+    // Create text content
+    const textContent = document.createElement('pre');
+    textContent.className = 'deck-list-text';
+    
+    // Get deck list from table
+    const deckList = [];
+    const rows = document.getElementById('finalDeckTableBody').getElementsByTagName('tr');
+    for (const row of rows) {
+        const cells = row.getElementsByTagName('td');
+        const count = cells[1].textContent;
+        const name = cells[2].textContent;
+        deckList.push(`${count} ${name}`);
+    }
+    
+    textContent.textContent = deckList.join('\n');
+    
+    // Assemble modal
+    modalContent.appendChild(closeButton);
+    modalContent.appendChild(textContent);
+    modal.appendChild(modalContent);
+    document.body.appendChild(modal);
+    
+    // Close modal when clicking outside
+    modal.onclick = (e) => {
+        if (e.target === modal) {
+            modal.remove();
+        }
+    };
+}

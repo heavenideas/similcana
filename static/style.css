@@ -922,3 +922,88 @@ h2 {
     color: #f3f4f6;
     font-size: 14px;
 }
+
+.copy-deck-button {
+    margin: 10px 0;
+    padding: 8px 16px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s;
+}
+
+.copy-deck-button:hover {
+    background-color: #45a049;
+}
+
+.copy-deck-button.copied {
+    background-color: #2196F3;
+}
+
+/* Add these styles at the end of your CSS file */
+
+.copy-deck-button {
+    margin-bottom: 1rem;
+    padding: 0.5rem 1rem;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.copy-deck-button:hover {
+    background-color: #45a049;
+}
+
+.deck-modal {
+    display: flex;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    justify-content: center;
+    align-items: center;
+}
+
+.deck-modal-content {
+    background-color: #374151;
+    padding: 20px;
+    border-radius: 5px;
+    position: relative;
+    width: 80%;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.deck-modal-close {
+    position: absolute;
+    right: 10px;
+    top: 5px;
+    color: #aaa;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.deck-modal-close:hover {
+    color: #555;
+}
+
+.deck-list-text {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: monospace;
+    margin: 10px 0;
+    padding: 10px;
+    background-color: #212731;
+    border-radius: 4px;
+    user-select: text;
+}
