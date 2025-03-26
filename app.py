@@ -18,11 +18,19 @@ finder = None
 def initialize_finder():
     global finder
     logger.debug("Initializing Finder")
-    finder = LorcanaCardFinder('database/allCards.json',recache_embeddings=True)
+    finder = LorcanaCardFinder('database/allCards.json', recache_embeddings=False)
     logger.debug("DONE - Initializing Finder")
 
+# Initialize in a thread for development, but allow direct initialization for serverless
 init_thread = threading.Thread(target=initialize_finder)
 init_thread.start()
+
+# Helper function to ensure finder is initialized
+def ensure_finder_initialized():
+    global finder
+    if finder is None:
+        initialize_finder()
+    return finder is not None
 
 def convert_similarity_values(similarities, overall_similarity):
     """Helper function to convert tensor values to Python floats"""
@@ -60,12 +68,12 @@ def home():
 
 @app.route('/status')
 def status():
-    return jsonify({'ready': finder is not None})
+    return jsonify({'ready': ensure_finder_initialized()})
 
 @app.route('/find_similar', methods=['POST'])
 def find_similar():
     logger.debug("find_similar route called")
-    if finder is None:
+    if not ensure_finder_initialized():
         return jsonify({'error': 'System is still initializing, please wait...'})
     
     try:
@@ -155,19 +163,13 @@ def batch():
 
 @app.route('/batch_progress')
 def batch_progress():
-    def generate():
-        while True:
-            progress = getattr(app, 'batch_analysis_progress', {'current': 0, 'total': 0})
-            yield f"data: {json.dumps(progress)}\n\n"
-            if progress['current'] >= progress['total'] and progress['total'] > 0:
-                break
-            time.sleep(0.5)
-    return Response(generate(), mimetype='text/event-stream')
+    progress = getattr(app, 'batch_analysis_progress', {'current': 0, 'total': 0})
+    return jsonify(progress)
 
 @app.route('/find_similar_batch', methods=['POST'])
 def find_similar_batch():
     logger.debug("find_similar_batch route called")
-    if finder is None:
+    if not ensure_finder_initialized():
         return jsonify({'error': 'System is still initializing, please wait...'})
     
     try:
@@ -226,18 +228,12 @@ def deck_comparison():
 
 @app.route('/deck_progress')
 def deck_progress():
-    def generate():
-        while True:
-            progress = getattr(app, 'deck_analysis_progress', {'current': 0, 'total': 0})
-            yield f"data: {json.dumps(progress)}\n\n"
-            if progress['current'] >= progress['total'] and progress['total'] > 0:
-                break
-            time.sleep(0.5)
-    return Response(generate(), mimetype='text/event-stream')
+    progress = getattr(app, 'deck_analysis_progress', {'current': 0, 'total': 0})
+    return jsonify(progress)
 
 @app.route('/analyze_deck', methods=['POST'])
 def analyze_deck():
-    if finder is None:
+    if not ensure_finder_initialized():
         return jsonify({'error': 'System is still initializing, please wait...'})
     
     data = request.get_json()

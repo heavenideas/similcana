@@ -99,6 +99,48 @@ python app.py
 
 2. Access the application in your web browser at `http://127.0.0.1:10000/`
 
+## Deployment
+
+### Deploying to Vercel
+
+This project has been configured to deploy on Vercel with serverless functions.
+
+1. Install Vercel CLI (if not already installed):
+
+```bash
+npm install -g vercel
+```
+
+2. Run the build script to prepare files:
+
+```bash
+# On Windows
+build.bat
+
+# On Unix/Mac
+chmod +x build.sh
+./build.sh
+```
+
+3. Deploy to Vercel:
+
+```bash
+vercel
+```
+
+4. Follow the prompts to complete the deployment.
+
+5. For production deployment:
+
+```bash
+vercel --prod
+```
+
+#### Notes for Vercel Deployment
+
+- The application uses a serverless architecture on Vercel
+- The embedding model and database are loaded on first request, which may cause longer cold starts
+- Progress indicators use AJAX polling instead of server-sent events for better compatibility
 
 ## Project Structure
 

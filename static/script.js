@@ -534,6 +534,9 @@ function processBatchCardList(text) {
         .filter((card, index, self) => self.indexOf(card) === index);
 }
 
+// Global variable for polling interval
+let progressPollInterval = null;
+
 function findSimilarCardsForBatch() {
     const cardList = document.getElementById('batchCardInput').value;
     const resultCount = document.getElementById('resultCount').value;
@@ -549,21 +552,25 @@ function findSimilarCardsForBatch() {
     progressContainer.classList.remove('hidden');
     loadingSpinner.classList.add('hidden');
     
-    // Set up progress event source
-    if (progressEventSource) {
-        progressEventSource.close();
+    // Clear any existing polling
+    if (progressPollInterval) {
+        clearInterval(progressPollInterval);
     }
-    progressEventSource = new EventSource('/batch_progress');
-    progressEventSource.onmessage = function(event) {
-        const progress = JSON.parse(event.data);
-        const percentage = (progress.current / progress.total * 100) || 0;
-        progressBar.style.width = `${percentage}%`;
-        progressText.textContent = `Processing cards: ${progress.current}/${progress.total}`;
-        
-        if (progress.current >= progress.total && progress.total > 0) {
-            progressEventSource.close();
-        }
-    };
+    
+    // Set up progress polling
+    progressPollInterval = setInterval(function() {
+        fetch('/batch_progress')
+            .then(response => response.json())
+            .then(progress => {
+                const percentage = (progress.current / progress.total * 100) || 0;
+                progressBar.style.width = `${percentage}%`;
+                progressText.textContent = `Processing cards: ${progress.current}/${progress.total}`;
+                
+                if (progress.current >= progress.total && progress.total > 0) {
+                    clearInterval(progressPollInterval);
+                }
+            });
+    }, 500);
     
     fetch('/find_similar_batch', {
         method: 'POST',
@@ -578,6 +585,7 @@ function findSimilarCardsForBatch() {
     .then(response => response.json())
     .then(data => {
         progressContainer.classList.add('hidden');
+        clearInterval(progressPollInterval);
         if (data.error) {
             alert(data.error);
             return;
@@ -586,6 +594,7 @@ function findSimilarCardsForBatch() {
     })
     .catch(error => {
         progressContainer.classList.add('hidden');
+        clearInterval(progressPollInterval);
         console.error('Error:', error);
         alert('An error occurred while fetching results');
     });
@@ -775,8 +784,6 @@ document.addEventListener('DOMContentLoaded', function() {
     checkSystemStatus();
 });
 
-let progressEventSource = null;
-
 function analyzeDeck() {
     const deckInput = document.getElementById('deckInput').value;
     const ignoreCollection = document.getElementById('ignoreCollection').checked;
@@ -797,21 +804,25 @@ function analyzeDeck() {
     finalDeckTableBody.innerHTML = '';
     finalDeckResults.classList.add('hidden');
 
-    // Set up progress event source
-    if (progressEventSource) {
-        progressEventSource.close();
+    // Clear any existing polling
+    if (progressPollInterval) {
+        clearInterval(progressPollInterval);
     }
-    progressEventSource = new EventSource('/deck_progress');
-    progressEventSource.onmessage = function(event) {
-        const progress = JSON.parse(event.data);
-        const percentage = (progress.current / progress.total * 100) || 0;
-        progressBar.style.width = `${percentage}%`;
-        progressText.textContent = `Processing cards: ${progress.current}/${progress.total}`;
-        
-        if (progress.current >= progress.total && progress.total > 0) {
-            progressEventSource.close();
-        }
-    };
+    
+    // Set up progress polling
+    progressPollInterval = setInterval(function() {
+        fetch('/deck_progress')
+            .then(response => response.json())
+            .then(progress => {
+                const percentage = (progress.current / progress.total * 100) || 0;
+                progressBar.style.width = `${percentage}%`;
+                progressText.textContent = `Processing cards: ${progress.current}/${progress.total}`;
+                
+                if (progress.current >= progress.total && progress.total > 0) {
+                    clearInterval(progressPollInterval);
+                }
+            });
+    }, 500);
 
     fetch('/analyze_deck', {
         method: 'POST',
@@ -826,6 +837,7 @@ function analyzeDeck() {
     .then(response => response.json())
     .then(data => {
         progressContainer.classList.add('hidden');
+        clearInterval(progressPollInterval);
         if (data.error) {
             deckResults.innerHTML = `<p>Error: ${data.error}</p>`;
         } else {
@@ -856,6 +868,7 @@ function analyzeDeck() {
     })
     .catch(error => {
         progressContainer.classList.add('hidden');
+        clearInterval(progressPollInterval);
         deckResults.innerHTML = `<p>Error: ${error.message}</p>`;
     });
 }
