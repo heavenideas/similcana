@@ -201,6 +201,17 @@ function createCardHTML(card, similarity) {
         `;
     };
 
+    // Helper function to format color display
+    const formatColor = (color) => {
+        if (!color) return '';
+        // For dual colors, add a special class and formatting
+        if (color.includes('-')) {
+            const colors = color.split('-');
+            return `<span class="dual-color">${colors.join(' / ')}</span>`;
+        }
+        return color;
+    };
+
     const cardTraderUrl = card.cardTraderUrl;
     const originalCard = window.originalCardDetails;
     const cardSimpleName = card.details?.simpleName || card.simpleName || '';
@@ -229,7 +240,7 @@ function createCardHTML(card, similarity) {
             <div class="card-details">
                 ${similarityHTML}
                 ${createAttributeHTML('Name', card.details.fullName)}
-                ${createAttributeHTML('Color', card.details.color, 'ink_color', originalCard?.color, true)}
+                ${createAttributeHTML('Color', formatColor(card.details.color), 'ink_color', originalCard?.color, true)}
                 ${createAttributeHTML('Cost', card.details.cost, 'ink_cost', originalCard?.cost)}
                 ${createAttributeHTML('Strength', card.details.strength, 'strength', originalCard?.strength)}
                 ${createAttributeHTML('Willpower', card.details.willpower, 'willpower', originalCard?.willpower)}

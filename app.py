@@ -18,7 +18,7 @@ finder = None
 def initialize_finder():
     global finder
     logger.debug("Initializing Finder")
-    finder = LorcanaCardFinder('database/allCards.json')
+    finder = LorcanaCardFinder('database/allCards.json',recache_embeddings=True)
     logger.debug("DONE - Initializing Finder")
 
 init_thread = threading.Thread(target=initialize_finder)

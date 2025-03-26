@@ -335,6 +335,7 @@ class LorcanaCardFinder:
             "willpower": card.get('willpower', 0),
             "lore_points": card.get('lore', 0),
             "ink_color": card.get('color', ''),
+            "ink_colors": card.get('colors', []),
             "inkwell": card.get('inkwell', False)
         }
 
@@ -347,6 +348,35 @@ class LorcanaCardFinder:
         else:
             return 0.5
 
+    def _calculate_ink_color_similarity(self, color1, colors1, color2, colors2):
+        """Calculate similarity between ink colors, handling dual colors."""
+        # If both cards have the same exact color attribute
+        if color1 == color2:
+            return 1.0
+        
+        # If we have a list of colors, use that for comparison
+        if colors1 and colors2:
+            # Calculate overlap as Jaccard similarity
+            intersection = len(set(colors1) & set(colors2))
+            union = len(set(colors1) | set(colors2))
+            
+            if union == 0:  # Avoid division by zero
+                return 0.0
+            
+            return intersection / union
+        
+        # If only one card has the colors list, extract colors from the hyphenated format
+        colors1_set = set(colors1) if colors1 else set(color1.split('-'))
+        colors2_set = set(colors2) if colors2 else set(color2.split('-'))
+        
+        intersection = len(colors1_set & colors2_set)
+        union = len(colors1_set | colors2_set)
+        
+        if union == 0:  # Avoid division by zero
+            return 0.0
+        
+        return intersection / union
+
     def _calculate_card_similarity(self, card1, card2, card1_name, card2_name):
         """Calculate overall similarity between two cards using cached data."""
         similarities = {
@@ -357,9 +387,10 @@ class LorcanaCardFinder:
             "tags": self._calculate_tag_similarity(card1["tags"], card2["tags"]),
             "ability": self._calculate_ability_similarity(card1["ability"], card2["ability"], card1_name, card2_name),
             "mechanics": self._calculate_mechanics_similarity(card1["mechanics"], card2["mechanics"]),
-            "ink_color": self._calculate_categorical_similarity(
-                card1["ink_color"], card2["ink_color"],
-                ["Amber", "Amethyst", "Emerald", "Ruby", "Sapphire", "Steel"]
+            # Replace the old ink_color calculation
+            "ink_color": self._calculate_ink_color_similarity(
+                card1["ink_color"], card1.get("ink_colors", []),
+                card2["ink_color"], card2.get("ink_colors", [])
             ),
             "card_type": self._calculate_categorical_similarity(
                 card1["card_type"], card2["card_type"],
@@ -369,7 +400,7 @@ class LorcanaCardFinder:
         }
 
         overall_similarity = sum(self.weights[feature] * similarities[feature] 
-                               for feature in similarities)
+                            for feature in similarities)
 
         return similarities, overall_similarity
 
@@ -415,7 +446,12 @@ class LorcanaCardFinder:
     def find_similar_cards(self, card_name, num_results=5):
         """Find similar cards to the given card name using cached data."""
         target_card = next((card for card in self.cards 
-                          if card.get('simpleName', '') == sanitize_string(card_name)), None)
+                      if card.get('simpleName', '') == sanitize_string(card_name)), None)
+        
+        # Make sure we're getting the new color fields
+        converted_target = self.card_formats.get(target_card['simpleName'])
+        if not converted_target:
+            converted_target = self._convert_card_format(target_card)
         
         if target_card is None:
             return None, None
